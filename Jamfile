@@ -1,0 +1,37 @@
+C++ = g++ ;
+C++FLAGS = -std=c++11 -g ;
+LINK = g++ ;
+LINKFLAGS = -std=c++11 ;
+LINKLIBS = -ly -lfl ;
+
+actions Flex
+{
+    flex -o $(1) $(2)
+}
+
+actions Bison
+{
+    bison -Wall -o $(1) --defines=parser.tab.hh $(2)
+}
+
+rule Lexer
+{
+    Depends lexer.yy.cpp : lexer.l parser.tab.hh ;
+    Flex lexer.yy.cpp : lexer.l ;
+    Clean clean : lexer.yy.cpp ;
+}
+
+rule Parser
+{
+    Depends parser.yy.cpp : parser.yy ;
+    Depends parser.tab.hh : parser.yy.cpp parser.yy ;
+    Bison parser.yy.cpp : parser.yy ;
+    Clean clean : parser.yy.cpp parser.tab.hh ;
+}
+
+Lexer ;
+Parser ;
+
+Clean clean : output output.o output.s ;
+
+Main compiler : main.cpp Arguments.cpp cgen.cpp ErrorCollector.cpp SymbolTable.cpp tostring.cpp validate.cpp lexer.yy.cpp parser.yy.cpp ;

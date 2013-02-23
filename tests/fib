@@ -1,0 +1,25 @@
+
+extern void print64(int64 n);
+
+void fib(int64 count) {
+    int64 a;
+    int64 b;
+    int64 n;
+    int64 temp;
+
+    n = 0;
+    a = 0;
+    b = 1;
+
+    while (n < count) {
+        print64(a);
+        temp = b;
+        b = a + b;
+        a = temp;
+        n = n + 1;
+    }
+}
+
+void main() {
+    fib(16);
+}

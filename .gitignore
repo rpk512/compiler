@@ -11,3 +11,12 @@
 *.lai
 *.la
 *.a
+
+compiler
+
+output.s
+output
+
+parser.tab.hh
+parser.yy.cpp
+lexer.yy.cpp
