@@ -51,7 +51,7 @@ void assembleAndLink()
     if (pid == 0) {
         execlp("nasm", "nasm", "-f", "elf64", "output.s", NULL);
         perror("Failed to execute nasm: ");
-        assembleFailed = true;
+        exit(1);
     } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
