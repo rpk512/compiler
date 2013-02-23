@@ -69,6 +69,7 @@ extern   RET(EXTERN)
 %%
 
 extern int yydebug;
+extern int yyparse();
 
 ModuleNode* module;
 
