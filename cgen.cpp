@@ -82,10 +82,27 @@ void FunctionCall::cgen(ostringstream& out)
     out << "call " << id.str << "\n";
 }
 
-
 void If::cgen(ostringstream& out)
 {
-    
+    int end = state.labelCount++;
+
+    If* cur = this;
+    int next;
+
+    while (cur != nullptr) {
+        next = state.labelCount++;
+        if (cur->predicate != nullptr) {
+            cur->predicate->cgen(out);
+            out << "cmp rax, 1\n";
+            out << "jne .L" << next << "\n";
+        }
+        cur->block->cgen(out);
+        out << "jmp .L" << end << "\n";
+        out << ".L" << next << ":\n";
+        cur = cur->elseClause.get();
+    }
+
+    out << ".L" << end << ":\n";
 }
 
 void While::cgen(ostringstream& out)
