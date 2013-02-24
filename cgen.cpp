@@ -1,4 +1,9 @@
+#include <iostream>
+#include <stdlib.h>
+
 #include "AST.h"
+
+using namespace std;
 
 struct CGenState {
     int labelCount;
@@ -142,22 +147,22 @@ void BinaryOpExpression::docgen(ostringstream& out)
     string cmov;
 
     switch (op) {
-        case OP_LESS:
-        case OP_LESS_EQ:
-        case OP_GREATER:
-        case OP_GREATER_EQ:
         case OP_EQUAL:
         case OP_NOT_EQUAL:
+        case OP_GREATER:
+        case OP_GREATER_EQ:
+        case OP_LESS:
+        case OP_LESS_EQ:
             out << "cmp [rsp-" << tempLocation << "], rax\n";
             out << "mov rax, 0\n";
             out << "mov rcx, 1\n";
             switch (op) {
-                case OP_LESS:       cmov = "cmovl";  break;
-                case OP_LESS_EQ:    cmov = "cmovle"; break;
-                case OP_GREATER:    cmov = "cmovg";  break;
-                case OP_GREATER_EQ: cmov = "cmovge"; break;
                 case OP_EQUAL:      cmov = "cmove";  break;
                 case OP_NOT_EQUAL:  cmov = "cmovne"; break;
+                case OP_GREATER:    cmov = "cmovg";  break;
+                case OP_GREATER_EQ: cmov = "cmovge"; break;
+                case OP_LESS:       cmov = "cmovl";  break;
+                case OP_LESS_EQ:    cmov = "cmovle"; break;
             }
             out << cmov << " rax, rcx\n";
             break;
@@ -169,12 +174,27 @@ void BinaryOpExpression::docgen(ostringstream& out)
             out << "mov rax, [rsp-" << tempLocation << "]\n";
             out << "sub rax, rcx\n";
             break;
+        default:
+            cout << "BUG: unknown op: " << op << endl;
+            exit(1);
     }
 }
 
 void UnaryOpExpression::cgen(ostringstream& out)
 {
-    
+    expr->cgen(out);
+    switch (op) {
+        case OP_UNARY_LOGICAL_NOT:
+            out << "not rax\n";
+            break;
+        case OP_UNARY_MINUS:
+            out << "not rax\n";
+            out << "inc rax\n";
+            break;
+        default:
+            cout << "BUG: unknown op: " << op << endl;
+            exit(1);
+    }
 }
 
 void VariableExpression::cgen(ostringstream& out)
