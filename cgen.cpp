@@ -6,8 +6,9 @@
 using namespace std;
 
 struct CGenState {
-    int labelCount;
-    int tempIndex;
+    FunctionNode* currentFunction;
+    int labelCount = 0;
+    int tempIndex = 0;
 };
 
 CGenState state;
@@ -34,9 +35,11 @@ void FunctionNode::cgen(ostringstream& out)
         return;
     }
 
+    state.currentFunction = this;
+
     state.labelCount = 0;
 
-    int stackSpace = locals.size() * 8 + stackSpaceForArgs;
+    int stackSpace = locals.size() * 8 + stackSpaceForArgs + temporarySpace;
     
     out << id.str << ": \n";
     out << "push rbp\n";
@@ -102,9 +105,11 @@ void If::cgen(ostringstream& out)
             out << "jne .L" << next << "\n";
         }
         cur->block->cgen(out);
-        out << "jmp .L" << end << "\n";
-        out << ".L" << next << ":\n";
         cur = cur->elseClause.get();
+        if (cur != nullptr) {
+            out << "jmp .L" << end << "\n";
+        }
+        out << ".L" << next << ":\n";
     }
 
     out << ".L" << end << ":\n";
@@ -129,19 +134,19 @@ void While::cgen(ostringstream& out)
 
 void BinaryOpExpression::cgen(ostringstream& out)
 {
-    state.tempIndex= 0;
+    int startTempIndex = state.tempIndex;
     docgen(out);
+    state.tempIndex = startTempIndex;
 }
 
 void BinaryOpExpression::docgen(ostringstream& out)
 {
-    int tempLocation = (state.tempIndex+1) * 8;
+    int tempLocation =
+        state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
     state.tempIndex++;
 
     lhs->docgen(out);
-    // use "red zone" above the stack for temporary space
-    // FIXME: don't assume infinite space above the stack
-    out << "mov [rsp-" << tempLocation << "], rax\n";
+    out << "mov [rsp+" << tempLocation << "], rax\n";
     rhs->docgen(out);
     
     string cmov;
@@ -153,7 +158,7 @@ void BinaryOpExpression::docgen(ostringstream& out)
         case OP_GREATER_EQ:
         case OP_LESS:
         case OP_LESS_EQ:
-            out << "cmp [rsp-" << tempLocation << "], rax\n";
+            out << "cmp [rsp+" << tempLocation << "], rax\n";
             out << "mov rax, 0\n";
             out << "mov rcx, 1\n";
             switch (op) {
@@ -167,11 +172,11 @@ void BinaryOpExpression::docgen(ostringstream& out)
             out << cmov << " rax, rcx\n";
             break;
         case OP_ADD:
-            out << "add rax, [rsp-" << tempLocation << "]\n";
+            out << "add rax, [rsp+" << tempLocation << "]\n";
             break;
         case OP_SUB:
             out << "mov rcx, rax\n";
-            out << "mov rax, [rsp-" << tempLocation << "]\n";
+            out << "mov rax, [rsp+" << tempLocation << "]\n";
             out << "sub rax, rcx\n";
             break;
         default:

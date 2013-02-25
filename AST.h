@@ -46,6 +46,7 @@ public:
     Symbol returnTypeSym;
     Symbol id;
     int stackSpaceForArgs = 0;
+    int temporarySpace = 0;
 
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
@@ -107,6 +108,7 @@ public:
         this->expr.reset(expr);
     }
     string toString(int currentIndentLevel) const;
+    bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
 };
 

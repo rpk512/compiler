@@ -178,6 +178,11 @@ bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
     return valid;
 }
 
+bool Return::validate(SymbolTable& symbols, ErrorCollector& errors)
+{
+    return expr->validate(symbols, errors);
+}
+
 bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     shared_ptr<FunctionType> ftype = symbols.getFunction(id.str);
@@ -197,12 +202,19 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     int argsSize = 0;
 
+    temporarySpace = 0;
+
     for (size_t i = 0; i < ftype->argumentTypes.size(); i++) {
         Type expected = ftype->argumentTypes[i];
         argsSize += 8;
         if (!arguments[i]->validate(symbols, errors)) {
             continue;
         }
+
+        if (arguments[i]->temporarySpace > temporarySpace) {
+            temporarySpace = arguments[i]->temporarySpace;
+        }
+
         Type actual = arguments[i]->getType();
         if (expected != actual) {
             errors.error(Statement::location, "Argument type mismatch in call "
@@ -274,6 +286,11 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
     valid &= lhs->validate(symbols, errors);
     valid &= rhs->validate(symbols, errors);
 
+    temporarySpace = 8 + lhs->temporarySpace + rhs->temporarySpace;
+    if (temporarySpace > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = temporarySpace;
+    }
+
     Type operandType = T_UNKNOWN;
     Type resultType = T_UNKNOWN;
     
@@ -327,6 +344,11 @@ bool UnaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     bool valid = expr->validate(symbols, errors);
     
+    temporarySpace = expr->temporarySpace;
+    if (temporarySpace > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = temporarySpace;
+    }
+
     Type expectedType = T_UNKNOWN;
 
     if (op == OP_UNARY_MINUS) {

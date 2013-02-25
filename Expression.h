@@ -37,6 +37,7 @@ class Expression : public ASTNode {
 protected:
     Type type = T_UNKNOWN;
 public:
+    int temporarySpace = 0;
     virtual Type getType() const {return type;};
     virtual ~Expression() {}
     virtual void docgen(ostringstream& out) {cgen(out);}
