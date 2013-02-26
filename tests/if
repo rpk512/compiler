@@ -1,0 +1,18 @@
+extern void print64(int n);
+
+void main() {
+    int n;
+    n = 0;
+    while (n < 4) {
+        if (n < 1) {
+            print64(0);
+        } elif (n < 2) {
+            print64(1);
+        } elif (n < 3) {
+            print64(2);
+        } else {
+            print64(3);
+        }
+        n = n + 1;
+    }
+}
