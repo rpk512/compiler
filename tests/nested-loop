@@ -1,0 +1,16 @@
+extern void print64(int n);
+
+void main() {
+    int i;
+    int j;
+
+    i = 0;
+    while (i < 4) {
+        j = 0;
+        while (j < 3) {
+            print64(i);
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+}
