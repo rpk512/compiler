@@ -21,8 +21,8 @@ int yyerror(const char*);
     Statement*     statement;
     If*            else_chain;
     Expression*    expression;
-    string*        string_ptr;
     Symbol*        symbol;
+    SourceText*    source_text;
     SourceLocation location;
     vector<unique_ptr<Declaration>>* argument_list;
     vector<unique_ptr<Statement>>*   statement_list;
@@ -61,7 +61,8 @@ int yyerror(const char*);
 %token<location> FALSE
 
 %token <symbol> ID
-%token <symbol> NUMBER
+%token <source_text> NUMBER
+%token <source_text> STRING_CONSTANT
 
 %left LOGICAL_OR
 %left LOGICAL_AND
@@ -333,7 +334,15 @@ expr2:
     }
 |   NUMBER
     {
+        // TODO: check for out of range literals
         $$ = new NumericLiteral(atoi($1->str.c_str()));
+        $$->location = $1->location;
+        delete $1;
+    }
+|   STRING_CONSTANT
+    {
+        module->strings.push_back($1->str);
+        $$ = new StringLiteral($1->str, module->strings.size()-1);
         $$->location = $1->location;
         delete $1;
     }

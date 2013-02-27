@@ -181,3 +181,7 @@ string NumericLiteral::toString() const {
 string VariableExpression::toString() const {
     return id.str;
 }
+
+string StringLiteral::toString() const {
+    return '"' + value + '"';
+}

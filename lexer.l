@@ -28,12 +28,18 @@ ID    [a-zA-Z_][a-zA-Z_0-9]*
 
 %%
 
+["].*["] {
+    string str(yytext);
+    str = str.substr(1, str.length()-2);
+    yylval.source_text = new SourceText{currentLocation, str};
+    return STRING_CONSTANT;
+}
+
 True  RET(TRUE)
 False RET(FALSE)
 
 {DIGIT}+ {
-    // it's lame to use Symbol here, but it has the data items we need
-    yylval.symbol = new Symbol{currentLocation, string(yytext)};
+    yylval.source_text = new SourceText{currentLocation, string(yytext)};
     return NUMBER;
 }
 
@@ -64,7 +70,11 @@ extern   RET(EXTERN)
 
 #.*\n { nextLine(); }
 
-. { cout << "Invalid character: " << yytext[0] << endl; exit(1); }
+. {
+    cout << "Invalid character '" << yytext[0] << "' found at ";
+    cout << currentLocation.line << ":" << currentLocation.column << endl;
+    exit(1);
+}
 
 %%
 

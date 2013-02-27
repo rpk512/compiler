@@ -15,7 +15,7 @@ SymbolTable::SymbolTable()
     types["u64"] = T_U64;
 
     types["bool"] = T_BOOL;
-
+    types["string"] = T_STRING;
     types["void"] = T_VOID;
 }
 

@@ -39,3 +39,42 @@ print64:
 
     add rsp, 32
     ret
+
+global print_line
+print_line:
+    push rbp
+    mov rbp, rsp
+
+    mov rax, [rbp+16]
+    mov ecx, [rax]
+    lea rsi, [rax+4]
+
+    sub rsp, rcx
+    sub rsp, 1
+
+    mov rdi, rsp
+
+.loop:
+    cmp rcx, 0
+    je .end
+    mov al, [rsi]
+    mov [rdi], al
+    inc rsi
+    inc rdi
+    dec rcx
+    jmp .loop
+.end:
+
+    mov [rdi], BYTE 10
+
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, rsp
+    mov rdx, [rbp+16]
+    mov edx, [rdx]
+    inc edx
+    syscall
+
+    mov rsp, rbp
+    pop rbp
+    ret

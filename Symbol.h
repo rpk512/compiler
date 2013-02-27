@@ -4,10 +4,12 @@
 #include <string>
 #include "SourceLocation.h"
 
-class Symbol {
+class SourceText {
 public:
     SourceLocation location;
     std::string str;
 };
+
+typedef SourceText Symbol;
 
 #endif

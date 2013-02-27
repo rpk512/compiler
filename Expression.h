@@ -2,10 +2,12 @@
 #define EXPRESSION_H
 
 #include <memory>
+#include <string>
 #include "Type.h"
 #include "ASTNode.h"
 #include "SymbolTable.h"
 #include "Symbol.h"
+using namespace std;
 
 enum BinaryOperator {
     OP_LOGICAL_OR,
@@ -46,8 +48,8 @@ public:
 class BinaryOpExpression : public Expression {
 public:
     BinaryOperator op;
-    std::unique_ptr<Expression> lhs;
-    std::unique_ptr<Expression> rhs;
+    unique_ptr<Expression> lhs;
+    unique_ptr<Expression> rhs;
 
     BinaryOpExpression(BinaryOperator op, Expression* lhs, Expression* rhs) {
         this->op = op;
@@ -55,7 +57,7 @@ public:
         this->rhs.reset(rhs);
         this->location = lhs->location;
     }
-    std::string toString() const;
+    string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
     void docgen(ostringstream&);
@@ -64,14 +66,14 @@ public:
 class UnaryOpExpression : public Expression {
 public:
     UnaryOperator op;
-    std::unique_ptr<Expression> expr;
+    unique_ptr<Expression> expr;
 
     UnaryOpExpression(UnaryOperator op, Expression* expr) {
         this->op = op;
         this->expr.reset(expr);
         this->location = expr->location;
     }
-    std::string toString() const;
+    string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
 };
@@ -84,7 +86,7 @@ public:
     VariableExpression(const Symbol& id) {
         this->id = id;
     }
-    std::string toString() const;
+    string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
 };
@@ -102,7 +104,7 @@ public:
         this->value = value;
         this->type = T_BOOL;
     }
-    std::string toString() const;
+    string toString() const;
     void cgen(ostringstream&);
 };
 
@@ -114,7 +116,20 @@ public:
         this->value = value;
         this->type = T_INT64;
     }
-    std::string toString() const;
+    string toString() const;
+    void cgen(ostringstream&);
+};
+
+class StringLiteral : public Literal {
+public:
+    int poolIndex;
+    string value;
+    StringLiteral(const string& value, int poolIndex) {
+        this->value = value;
+        this->poolIndex = poolIndex;
+        this->type = T_STRING;
+    }
+    string toString() const;
     void cgen(ostringstream&);
 };
 

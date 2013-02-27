@@ -1,0 +1,11 @@
+extern void print_line(string str);
+
+void main() {
+    string hello;
+
+    hello = "Hello, World!";
+
+    print_line(hello);
+
+    print_line("Hello, World!");
+}

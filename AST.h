@@ -32,6 +32,7 @@ ModuleNode* parse(const string& codeString, bool debug);
 class ModuleNode {
 public:
     vector<unique_ptr<FunctionNode>> functions;
+    vector<string> strings;
 
     string toString() const;
     string validate(char**);

@@ -14,6 +14,7 @@ enum Type {
     T_U32,
     T_U64,
     T_BOOL,
+    T_STRING,
     T_VOID
 };
 

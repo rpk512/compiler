@@ -26,6 +26,14 @@ string ModuleNode::cgen()
         func->cgen(out);
     }
 
+    out << "section .data\n";
+
+    for (size_t i = 0; i < strings.size(); i++) {
+        out << "D$" << i << ":\n";
+        out << "dd " << strings[i].size() << "\n";
+        out << "db '" << strings[i] << "'\n";
+    }
+
     return out.str();
 }
 
@@ -219,4 +227,9 @@ void BooleanLiteral::cgen(ostringstream& out)
 void NumericLiteral::cgen(ostringstream& out)
 {
     out << "mov rax, " << value << "\n";
+}
+
+void StringLiteral::cgen(ostringstream& out)
+{
+    out << "mov rax, D$" << poolIndex << "\n";
 }
