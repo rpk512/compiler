@@ -72,6 +72,7 @@ void assembleAndLink()
     if (pid == 0) {
         execlp("ld", "ld", "-o", "output", "output.o", NULL);
         perror("Failed to execute ld: ");
+        exit(1);
     } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
