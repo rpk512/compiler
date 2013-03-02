@@ -1,4 +1,4 @@
-extern void print64(int n);
+extern void print_line(string s);
 
 int sum(int n) {
     if (n > 0) {
@@ -8,5 +8,9 @@ int sum(int n) {
 }
 
 void main() {
-    print64(sum(100));
+    if (sum(100) == 5050) {
+        print_line("PASS");
+    } else {
+        print_line("FAIL");
+    }
 }

@@ -72,7 +72,7 @@ extern   RET(EXTERN)
 
 . {
     cout << "Invalid character '" << yytext[0] << "' found at ";
-    cout << currentLocation.line << ":" << currentLocation.column << endl;
+    cout << currentLocation.line+1 << ":" << currentLocation.column << endl;
     exit(1);
 }
 

@@ -1,17 +1,24 @@
-
-extern void print64(int64 n);
+extern void print_line(string s);
 
 void main() {
     int i;
+    int n;
 
+    n = 0;
     i = 1;
     while (i <= 5) {
-        print64(i);
         i = i + 1;
+        n = n + 1;
     }
 
     while (i >= 1) {
-        print64(i);
         i = i - 1;
+        n = n + 1;
+    }
+
+    if (i == 0 && n == 11) {
+        print_line("PASS");
+    } else {
+        print_line("FAIL");
     }
 }

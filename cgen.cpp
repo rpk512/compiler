@@ -151,12 +151,28 @@ void BinaryOpExpression::docgen(ostringstream& out)
 {
     int tempLocation =
         state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
+    int shortCircuitLabel;
     state.tempIndex++;
 
     lhs->docgen(out);
+
+    if (op == OP_LOGICAL_AND || op == OP_LOGICAL_OR) {
+        if (op == OP_LOGICAL_AND) {
+            out << "cmp rax, 0\n";
+        } else {
+            out << "cmp rax, 1\n";
+        }
+        shortCircuitLabel = state.labelCount++;
+        out << "je .L" << shortCircuitLabel << "\n";
+    }
+
     out << "mov [rsp+" << tempLocation << "], rax\n";
     rhs->docgen(out);
     
+    if (op == OP_LOGICAL_AND || op == OP_LOGICAL_OR) {
+        out << ".L" << shortCircuitLabel << ":\n";
+    }
+
     string cmov;
 
     switch (op) {
@@ -186,6 +202,9 @@ void BinaryOpExpression::docgen(ostringstream& out)
             out << "mov rcx, rax\n";
             out << "mov rax, [rsp+" << tempLocation << "]\n";
             out << "sub rax, rcx\n";
+            break;
+        case OP_LOGICAL_AND:
+        case OP_LOGICAL_OR:
             break;
         default:
             cout << "BUG: unknown op: " << op << endl;

@@ -78,3 +78,9 @@ print_line:
     mov rsp, rbp
     pop rbp
     ret
+
+global exit
+exit:
+   mov rax, 60
+   mov rdi, [rsp]
+   syscall
