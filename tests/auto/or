@@ -1,0 +1,24 @@
+extern void print_line(string s);
+extern void exit(int n);
+
+bool fail() {
+    print_line("FAIL");
+    exit(1);
+    return True;
+}
+
+void main() {
+    if (False || True || fail()) {
+    
+    }
+
+    if (True || fail()) {
+        
+    }
+
+    if (False || False || False) {
+        fail();
+    }
+
+    print_line("PASS");
+}
