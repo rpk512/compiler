@@ -149,9 +149,10 @@ void BinaryOpExpression::cgen(ostringstream& out)
 
 void BinaryOpExpression::docgen(ostringstream& out)
 {
+    int shortCircuitLabel;
     int tempLocation =
         state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
-    int shortCircuitLabel;
+    string temp = "[rsp+" + to_string(tempLocation) + "]";
     state.tempIndex++;
 
     lhs->docgen(out);
@@ -166,7 +167,7 @@ void BinaryOpExpression::docgen(ostringstream& out)
         out << "je .L" << shortCircuitLabel << "\n";
     }
 
-    out << "mov [rsp+" << tempLocation << "], rax\n";
+    out << "mov " << temp << ", rax\n";
     rhs->docgen(out);
     
     if (op == OP_LOGICAL_AND || op == OP_LOGICAL_OR) {
@@ -182,7 +183,7 @@ void BinaryOpExpression::docgen(ostringstream& out)
         case OP_GREATER_EQ:
         case OP_LESS:
         case OP_LESS_EQ:
-            out << "cmp [rsp+" << tempLocation << "], rax\n";
+            out << "cmp " << temp << ", rax\n";
             out << "mov rax, 0\n";
             out << "mov rcx, 1\n";
             switch (op) {
@@ -196,12 +197,26 @@ void BinaryOpExpression::docgen(ostringstream& out)
             out << cmov << " rax, rcx\n";
             break;
         case OP_ADD:
-            out << "add rax, [rsp+" << tempLocation << "]\n";
+            out << "add rax," << temp << "\n";
             break;
         case OP_SUB:
             out << "mov rcx, rax\n";
-            out << "mov rax, [rsp+" << tempLocation << "]\n";
+            out << "mov rax, " << temp << "\n";
             out << "sub rax, rcx\n";
+            break;
+        case OP_MUL:
+            out << "imul QWORD " << temp << "\n";
+            break;
+        case OP_DIV:
+        case OP_MOD:
+            out << "mov rcx, rax\n";
+            out << "mov rax, " << temp << "\n";
+            out << "mov rdx, rax\n";
+            out << "sar rdx, 63\n"; // fill rdx with the sign bit
+            out << "idiv rcx\n";
+            if (op == OP_MOD) {
+                out << "mov rax, rdx\n";
+            }
             break;
         case OP_LOGICAL_AND:
         case OP_LOGICAL_OR:
@@ -217,7 +232,7 @@ void UnaryOpExpression::cgen(ostringstream& out)
     expr->cgen(out);
     switch (op) {
         case OP_UNARY_LOGICAL_NOT:
-            out << "not rax\n";
+            out << "xor rax, 1\n";
             break;
         case OP_UNARY_MINUS:
             out << "not rax\n";

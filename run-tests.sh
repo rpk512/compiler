@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for test_case in `find ./tests/auto -type f`; do
+for test_case in `find ./tests/auto -type f ! -iname ".*"`; do
     compiler_output=`./compiler $test_case`
     test_case=`echo $test_case | sed 's/\.\/tests\/auto\///'`
     if [[ "$compiler_output" != "" ]]; then
