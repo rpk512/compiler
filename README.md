@@ -1,3 +1,18 @@
+Required Tools
+==============
+* nasm
+* bison
+* flex
+* jam
+* somewhat recent g++
+
+Todo
+====
+* Arrays
+* Pointers
+* Different int sizes
+* String manipulation
+
 Grammar
 =======
 
@@ -23,9 +38,9 @@ Grammar
 
     <if> ::= "if" "(" <expr> ")" <block> { "elif" "(" <expr> ")" <block> } [ "else" <block> ]
 
-    <value> ::= (<id> [ "[" <expr> "]" ]) | <literal> | <function_call>
+    <value> ::= <id> | <literal> | <function_call>
 
-    <literal> ::= <number> | "True" | "False"
+    <literal> ::= <number> | "True" | "False" | '"',{all characters - '"'},'"'
 
     <expr>   ::= <expr_1> [ "||"                      <expr>   ]
     <expr_1> ::= <expr_2> [ "&&"                      <expr_1> ]
@@ -36,15 +51,10 @@ Grammar
     <expr_6> ::=          [ ("!" | "-") ]             <expr_7>
     <expr_7> ::= <value> | ( "(" <expr> ")" )
 
-    <type> ::= <basic_type> [ "[" [ <number> ] "]" ] [ "*" ]
-
-    <basic_type> ::= "int8" | "int16" | "int32" | "int64" |
-                     "u8" | "u16" | "u32" | "u64" |
-                     "bool"
+    <type> ::= "int" | "int64" | "bool" | "string"
 
     <id> ::= <letter_> { <letter_> | <digit> }
     <letter_> ::= A-Z | a-z | _
-
     <digit> ::= 0-9
 
     <number> ::= 1-9{ 0-9 }
