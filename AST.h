@@ -120,7 +120,7 @@ public:
     string toString() const;
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    Type getType(const SymbolTable&) const;
+    unique_ptr<Type> getType(const SymbolTable&) const;
     void cgen(ostringstream&);
 };
 

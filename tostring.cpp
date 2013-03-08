@@ -185,3 +185,16 @@ string VariableExpression::toString() const {
 string StringLiteral::toString() const {
     return '"' + value + '"';
 }
+
+
+string BasicType::toString() const {
+    return typeToString(typeId);
+}
+
+string ArrayType::toString() const {
+    return base->toString() + "[" + to_string(elements) + "]";
+}
+
+string PointerType::toString() const {
+    return base->toString() + "*";
+}

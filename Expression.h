@@ -37,10 +37,10 @@ class ErrorCollector;
 
 class Expression : public ASTNode {
 protected:
-    Type type = T_UNKNOWN;
+    unique_ptr<Type> type;
 public:
     int temporarySpace = 0;
-    virtual Type getType() const {return type;};
+    virtual unique_ptr<Type> getType() const {return type;};
     virtual ~Expression() {}
     virtual void docgen(ostringstream& out) {cgen(out);}
 };
@@ -56,6 +56,7 @@ public:
         this->lhs.reset(lhs);
         this->rhs.reset(rhs);
         this->location = lhs->location;
+        type.reset(new BasicType(T_UNKNOWN));
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
@@ -72,6 +73,7 @@ public:
         this->op = op;
         this->expr.reset(expr);
         this->location = expr->location;
+        type.reset(new BasicType(T_UNKNOWN));
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
@@ -85,6 +87,7 @@ public:
 
     VariableExpression(const Symbol& id) {
         this->id = id;
+        type.reset(new BasicType(T_UNKNOWN));
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
@@ -102,7 +105,7 @@ public:
 
     BooleanLiteral(bool value) {
         this->value = value;
-        this->type = T_BOOL;
+        type.reset(new BasicType(T_BOOL));
     }
     string toString() const;
     void cgen(ostringstream&);
@@ -114,7 +117,7 @@ public:
 
     NumericLiteral(long value) {
         this->value = value;
-        this->type = T_INT64;
+        type.reset(new BasicType(T_INT64));
     }
     string toString() const;
     void cgen(ostringstream&);
@@ -127,7 +130,7 @@ public:
     StringLiteral(const string& value, int poolIndex) {
         this->value = value;
         this->poolIndex = poolIndex;
-        this->type = T_STRING;
+        type.reset(new BasicType(T_STRING));
     }
     string toString() const;
     void cgen(ostringstream&);

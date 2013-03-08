@@ -50,6 +50,7 @@ struct BasicType : public Type {
         this->typeId = typeId;
     }
     bool validate(SymbolTable&, ErrorCollector&);
+    string toString();
 };
 
 struct ArrayType : public Type {
@@ -63,6 +64,7 @@ struct ArrayType : public Type {
         this->size = base->size * elements + 4;
     }
     bool validate(SymbolTable&, ErrorCollector&);
+    string toString();
 };
 
 struct PointerType : public Type {
@@ -74,6 +76,7 @@ struct PointerType : public Type {
         this->size = 8;
     }
     bool validate(SymbolTable&, ErrorCollector&);
+    string toString();
 };
 
 #endif
