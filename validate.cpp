@@ -385,3 +385,23 @@ bool VariableExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     return true;
 }
+
+//
+// Types
+//
+
+bool BasicType::validate(SymbolTable& symbols, ErrorCollector& errors)
+{
+    typeId = symbols.getBasicTypeId(symbol.str);
+    return typeId != T_UNKNOWN;
+}
+
+bool ArrayType::validate(SymbolTable& symbols, ErrorCollector& errors)
+{
+    return base->validate(symbols, errors);
+}
+
+bool PointerType::validate(SymbolTable& symbols, ErrorCollector& errors)
+{
+    return base->validate(symbols, errors);
+}

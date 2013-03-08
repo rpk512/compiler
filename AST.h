@@ -44,7 +44,7 @@ public:
     vector<unique_ptr<Declaration>> arguments;
     vector<shared_ptr<Variable>> locals;
     unique_ptr<Block> block;
-    Symbol returnTypeSym;
+    unique_ptr<Type> returnType;
     Symbol id;
     int stackSpaceForArgs = 0;
     int temporarySpace = 0;
@@ -84,9 +84,8 @@ public:
 
 class Declaration : public Statement {
 public:
-    Symbol typeSymbol;
+    unqiue_ptr<Type> type;
     Symbol id;
-    unique_ptr<Expression> initialExpr;
 
     Declaration(const Symbol& typeSymbol,
                 const Symbol& id,
