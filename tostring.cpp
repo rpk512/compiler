@@ -23,8 +23,9 @@ string binaryOpToString(BinaryOperator op) {
 
 string unaryOpToString(UnaryOperator op) {
     switch (op) {
-        case OP_UNARY_LOGICAL_NOT: return "!";
-        case OP_UNARY_MINUS:       return "-";
+        case OP_LOGICAL_NOT: return "!";
+        case OP_UNARY_MINUS: return "-";
+        case OP_DEREF:       return "*";
     }
 }
 
@@ -52,7 +53,6 @@ static string indent(int size) {
     return s;
 }
 
-
 string ModuleNode::toString() const {
     string s = "";
     for (size_t i = 0; i < functions.size(); i++) {
@@ -60,7 +60,6 @@ string ModuleNode::toString() const {
     }
     return s;
 }
-
 
 string FunctionNode::toString() const {
     string s = "";
@@ -84,7 +83,6 @@ string FunctionNode::toString() const {
     return s;
 }
 
-
 string Block::toString(int currentIndentLevel) const {
     string s = "{\n";
     for (size_t i = 0; i < statements.size(); i++) {
@@ -95,11 +93,9 @@ string Block::toString(int currentIndentLevel) const {
     return s;
 }
 
-
 string Assignment::toString(int currentIndentLevel) const {
-    return id.str + " = " + rhs->toString() + ";";
+    return lhs->toString() + " = " + rhs->toString() + ";";
 }
-
 
 string Declaration::toString() const {
     return type->toString() + " " + id.str;
@@ -109,11 +105,9 @@ string Declaration::toString(int currentIndentLevel) const {
     return toString() + ";";
 }
 
-
 string Return::toString(int currentIndentLevel) const {
     return "return " + expr->toString() + ";";
 }
-
 
 string FunctionCall::toString() const {
     string s = id.str + "(";
@@ -131,7 +125,6 @@ string FunctionCall::toString(int currentIndentLevel) const {
     return toString() + ";";
 }
 
-
 string If::toString(int currentIndentLevel) const {
     string s = "";
     if (predicate != nullptr) {
@@ -146,37 +139,33 @@ string If::toString(int currentIndentLevel) const {
     return s;
 }
 
-
 string While::toString(int currentIndentLevel) const {
     string s = "while (" + expr->toString() + ") ";
     s += block->toString(currentIndentLevel);
     return s;
 }
 
-
-
-
 string BinaryOpExpression::toString() const {
+    if (op == OP_ARRAY_ACCESS) {
+        return lhs->toString() + "[" + rhs->toString() + "]";
+    }
+
     return "(" + lhs->toString() + " " +
            binaryOpToString(op) + " " +
            rhs->toString() + ")";
 }
 
-
 string UnaryOpExpression::toString() const {
     return unaryOpToString(op) + expr->toString();
 }
-
 
 string BooleanLiteral::toString() const {
     return value ? "True" : "False";
 }
 
-
 string NumericLiteral::toString() const {
     return to_string(value);
 }
-
 
 string VariableExpression::toString() const {
     return id.str;
@@ -185,7 +174,6 @@ string VariableExpression::toString() const {
 string StringLiteral::toString() const {
     return '"' + value + '"';
 }
-
 
 string BasicType::toString() const {
     return symbol.str;
