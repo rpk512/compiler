@@ -10,10 +10,11 @@ Todo
 ====
 * Arrays
 * Different int sizes
-* String manipulation
 * Modules
-* Improve syntax error messages
+* Improve code generation for if/while and local variable accesses
+* String manipulation
 * Setup tests for compilation errors
+* Improve syntax error messages
 
 Grammar
 =======
