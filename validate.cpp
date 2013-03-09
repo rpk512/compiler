@@ -49,15 +49,16 @@ bool FunctionNode::validateSignature(SymbolTable& symbols,
     int argumentStackOffset = 8 * 2; // base pointer & return address
     for (unique_ptr<Declaration>& argument : arguments) {
         if (argument->validate(symbols, errors)) {
-            if (block == nullptr) {
-                continue;
-            }
             shared_ptr<Variable> var = symbols.getVariable(argument->id.str);
             var->stackOffset = argumentStackOffset;
             argumentStackOffset += argument->type->size;
         } else {
             valid = false;
         }
+    }
+
+    if (block == nullptr) {
+        symbols.clearVariables();
     }
 
     return valid;
