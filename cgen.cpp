@@ -22,7 +22,7 @@ string ModuleNode::cgen()
     out << "bits 64\n";
     out << "section .text\n\n";
     
-    for (unique_ptr<FunctionNode>& func : functions) {
+    for (shared_ptr<FunctionNode>& func : functions) {
         func->cgen(out);
     }
 

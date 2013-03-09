@@ -28,7 +28,7 @@ string unaryOpToString(UnaryOperator op) {
     }
 }
 
-string typeToString(Type type) {
+string typeToString(BasicTypeId type) {
     switch (type) {
         case T_INT8:    return "int8";
         case T_INT16:   return "int16";
@@ -67,9 +67,9 @@ string FunctionNode::toString() const {
     if (block == nullptr) {
         s += "extern ";
     }
-    s += returnTypeSym.str + " " + id.str + "(";
+    s += returnType->toString() + " " + id.str + "(";
     for (size_t i = 0; i < arguments.size(); i++) {
-        s += arguments[i]->typeSymbol.str + " ";
+        s += arguments[i]->type->toString() + " ";
         s += arguments[i]->id.str;
         if (i != arguments.size() - 1) {
             s += ", ";
@@ -102,7 +102,7 @@ string Assignment::toString(int currentIndentLevel) const {
 
 
 string Declaration::toString() const {
-    return typeSymbol.str + " " + id.str;
+    return type->toString() + " " + id.str;
 }
 
 string Declaration::toString(int currentIndentLevel) const {
@@ -188,7 +188,7 @@ string StringLiteral::toString() const {
 
 
 string BasicType::toString() const {
-    return typeToString(typeId);
+    return symbol.str;
 }
 
 string ArrayType::toString() const {

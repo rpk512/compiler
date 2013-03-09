@@ -6,9 +6,7 @@
 #include <sstream>
 #include <memory>
 
-#include "ASTNode.h"
 #include "Expression.h"
-#include "SymbolTable.h"
 #include "Type.h"
 #include "Symbol.h"
 
@@ -26,12 +24,12 @@ class If;
 class While;
 
 class ErrorCollector;
+class SymbolTable;
 
 ModuleNode* parse(const string& codeString, bool debug);
 
-class ModuleNode {
-public:
-    vector<unique_ptr<FunctionNode>> functions;
+struct ModuleNode {
+    vector<shared_ptr<FunctionNode>> functions;
     vector<string> strings;
 
     string toString() const;
@@ -39,40 +37,42 @@ public:
     string cgen();
 };
 
-class FunctionNode : public ASTNode {
-public:
+struct FunctionNode {
+    SourceLocation location;
     vector<unique_ptr<Declaration>> arguments;
     vector<shared_ptr<Variable>> locals;
     unique_ptr<Block> block;
-    unique_ptr<Type> returnType;
+    shared_ptr<Type> returnType;
     Symbol id;
     int stackSpaceForArgs = 0;
     int temporarySpace = 0;
 
     string toString() const;
-    bool validate(SymbolTable&, ErrorCollector&);
+    bool validateSignature(SymbolTable&, ErrorCollector&);
+    bool validateBody(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
 };
 
-class Block : public ASTNode {
-public:
+struct Block {
+    SourceLocation location;
     vector<unique_ptr<Statement>> statements;
 
-    string toString() const {return toString(0);}
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
 };
 
-class Statement : public ASTNode {
-public:
+struct Statement {
+    SourceLocation location;
+
     string toString() const {return toString(0);}
     virtual string toString(int currentIndentLevel) const = 0;
+    virtual void cgen(ostringstream&) {};
+    virtual bool validate(SymbolTable&, ErrorCollector&) = 0;
     virtual ~Statement() {}
 };
 
-class Assignment : public Statement {
-public:
+struct Assignment : public Statement {
     Symbol id;
     unique_ptr<Expression> rhs;
     shared_ptr<Variable> variable;
@@ -82,26 +82,23 @@ public:
     void cgen(ostringstream&);
 };
 
-class Declaration : public Statement {
-public:
-    unqiue_ptr<Type> type;
+struct Declaration : public Statement {
+    shared_ptr<Type> type;
     Symbol id;
 
-    Declaration(const Symbol& typeSymbol,
+    Declaration(Type* type,
                 const Symbol& id,
                 Expression* initialExpr) {
-        this->typeSymbol = typeSymbol;
+        this->type.reset(type);
         this->id = id;
-        this->initialExpr.reset(initialExpr);
-        location = typeSymbol.location;
+        location = type->location;
     }
     string toString() const;
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
 };
 
-class Return : public Statement {
-public:
+struct Return : public Statement {
     unique_ptr<Expression> expr;
 
     Return(Expression* expr) {
@@ -112,20 +109,18 @@ public:
     void cgen(ostringstream&);
 };
 
-class FunctionCall : public Statement, public Expression {
-public:
+struct FunctionCall : public Statement, public Expression {
     Symbol id;
     vector<unique_ptr<Expression>> arguments;
+
 // TODO: add constructor
     string toString() const;
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    unique_ptr<Type> getType(const SymbolTable&) const;
     void cgen(ostringstream&);
 };
 
-class If : public Statement {
-public:
+struct If : public Statement {
     unique_ptr<Block> block;
     unique_ptr<Expression> predicate;
     unique_ptr<If> elseClause;
@@ -140,12 +135,11 @@ public:
     void cgen(ostringstream&);
 };
 
-class While : public Statement {
-public:
+struct While : public Statement {
     unique_ptr<Expression> expr;
     unique_ptr<Block> block;
 
-    While(Expression* expr, Block* block)   {
+    While(Expression* expr, Block* block) {
         this->expr.reset(expr);
         this->block.reset(block);
     }

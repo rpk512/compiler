@@ -24,6 +24,7 @@ int yyerror(const char*);
     Symbol*        symbol;
     SourceText*    source_text;
     SourceLocation location;
+    Type*          type;
     vector<unique_ptr<Declaration>>* argument_list;
     vector<unique_ptr<Statement>>*   statement_list;
     vector<unique_ptr<Expression>>*  expr_list;
@@ -41,6 +42,7 @@ int yyerror(const char*);
 %type <argument_list> actual_argument_list
 %type <statement_list> statement_list
 %type <expr_list> expr_list
+%type <type> type
 
 %token<location> WHILE
 %token<location> IF
@@ -87,7 +89,7 @@ module:
 ;
 
 function:
-    ID ID '(' argument_list ')' block
+    type ID '(' argument_list ')' block
     {
         $$ = new FunctionNode();
         if ($4 != nullptr) {
@@ -97,11 +99,10 @@ function:
         $$->block.reset($6);
         $$->id = *$2;
         delete $2;
-        $$->returnTypeSym = *$1;
+        $$->returnType.reset($1);
         $$->location = $1->location;
-        delete $1;
     }
-|   EXTERN ID ID '(' argument_list ')' ';'
+|   EXTERN type ID '(' argument_list ')' ';'
     {
         $$ = new FunctionNode();
         if ($5 != nullptr) {
@@ -110,9 +111,25 @@ function:
         }
         $$->id = *$3;
         delete $3;
-        $$->returnTypeSym = *$2;
-        delete $2;
+        $$->returnType.reset($2);
         $$->location = $1;
+    }
+;
+
+type:
+    ID
+    {
+        $$ = new BasicType(*$1);
+        delete $1;
+    }
+|   type '[' NUMBER ']'
+    {
+        int size = atoi($3->str.c_str());
+        $$ = new ArrayType(unique_ptr<Type>($1), size);
+    }
+|   type '*'
+    {
+        $$ = new PointerType(unique_ptr<Type>($1));
     }
 ;
 
@@ -128,19 +145,17 @@ argument_list:
 ;
 
 actual_argument_list:
-    ID ID
+    type ID
     {
-        unique_ptr<Declaration> decl(new Declaration(*$1, *$2, nullptr));
-        delete $1;
+        unique_ptr<Declaration> decl(new Declaration($1, *$2, nullptr));
         delete $2;
 
         $$ = new vector<unique_ptr<Declaration>>();
         $$->push_back(move(decl));
     }
-|   argument_list ',' ID ID
+|   argument_list ',' type ID
     {
-        unique_ptr<Declaration> decl(new Declaration(*$3, *$4, nullptr));
-        delete $3;
+        unique_ptr<Declaration> decl(new Declaration($3, *$4, nullptr));
         delete $4;
 
         $1->push_back(move(decl));
@@ -171,11 +186,10 @@ statement_list:
 ;
 
 statement:
-    ID ID ';'
+    type ID ';'
     {
-        $$ = new Declaration(*$1, *$2, nullptr);
+        $$ = new Declaration($1, *$2, nullptr);
         $$->location = $1->location;
-        delete $1;
         delete $2;
     }
 |   ID '=' expr ';'

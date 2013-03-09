@@ -4,8 +4,10 @@
 #include <string>
 #include <memory>
 #include "Symbol.h"
-#include "SymbolTable.h"
 using namespace std;
+
+class SymbolTable;
+class ErrorCollector;
 
 enum BasicTypeId {
     T_UNKNOWN,
@@ -30,12 +32,17 @@ enum TypeForm {
 
 string typeToString(BasicTypeId);
 
-struct Type : public ASTNode {
+struct Type {
+    SourceLocation location;
     TypeForm form;
     int size;
 
+    virtual ~Type() {};
     virtual bool validate(SymbolTable&, ErrorCollector&) = 0;
-    virtual ~Type();
+    virtual string toString() const = 0;
+    virtual bool isVoid() const {return false;}
+    virtual bool isBasicType(BasicTypeId) const {return false;}
+    virtual bool isCompatible(Type*) const {return false;}
 };
 
 struct BasicType : public Type {
@@ -44,13 +51,21 @@ struct BasicType : public Type {
 
     BasicType(Symbol symbol) {
         this->symbol = symbol;
+        this->location = symbol.location;
+        this->typeId = T_UNKNOWN;
         this->form = TF_BASIC;
+        this->size = 8;
     }
     BasicType(BasicTypeId typeId) {
         this->typeId = typeId;
+        this->form = TF_BASIC;
+        this->size = 8;
     }
     bool validate(SymbolTable&, ErrorCollector&);
-    string toString();
+    string toString() const;
+    bool isCompatible(Type*) const;
+    bool isVoid() const {return typeId == T_VOID;}
+    bool isBasicType(BasicTypeId id) const {return id == typeId;}
 };
 
 struct ArrayType : public Type {
@@ -62,9 +77,11 @@ struct ArrayType : public Type {
         this->base = move(base);
         this->form = TF_ARRAY;
         this->size = base->size * elements + 4;
+        this->location = base->location;
     }
     bool validate(SymbolTable&, ErrorCollector&);
-    string toString();
+    string toString() const;
+    bool isCompatible(Type*) const;
 };
 
 struct PointerType : public Type {
@@ -74,9 +91,11 @@ struct PointerType : public Type {
         this->base = move(base);
         this->form = TF_POINTER;
         this->size = 8;
+        this->location = base->location;
     }
     bool validate(SymbolTable&, ErrorCollector&);
-    string toString();
+    string toString() const;
+    bool isCompatible(Type*) const;
 };
 
 #endif

@@ -14,11 +14,10 @@ class FunctionNode;
 class Variable {
 public:
     int stackOffset;
-    unique_ptr<Type> type;
+    shared_ptr<Type> type;
 
-    Variable(unique_ptr<Type> type, int stackOffset)
-    {
-        this->type = move(type);
+    Variable(shared_ptr<Type> type, int stackOffset) {
+        this->type = type;
         this->stackOffset = stackOffset;
     }
 
@@ -33,13 +32,11 @@ private:
 public:
     SymbolTable();
 
-    shared_ptr<FunctionType> getFunction(string name) const;
+    shared_ptr<FunctionNode> getFunction(string name) const;
     shared_ptr<Variable> getVariable(string name) const;
     BasicTypeId getBasicTypeId(string name) const;
-    
     void setFunction(string name, shared_ptr<FunctionNode> ftype);
     void setVariable(string name, shared_ptr<Variable> variable);
-    
     void clearVariables();
 };
 

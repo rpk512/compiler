@@ -58,10 +58,12 @@ void assembleAndLink()
         if (WEXITSTATUS(status) != 0) {
             cout << "Assemble failed." << endl;
             assembleFailed = true;
+            exit(1);
         }
     } else {
         perror("Failed to fork nasm: ");
         assembleFailed = true;
+        exit(1);
     }
 
     if (assembleFailed) {
@@ -78,9 +80,11 @@ void assembleAndLink()
         waitpid(pid, &status, 0);
         if (WEXITSTATUS(status) != 0) {
             cout << "Link failed." << endl;
+            exit(1);
         }
     } else {
         perror("Failed to fork ld: ");
+        exit(1);
     }
 }
 

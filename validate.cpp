@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "AST.h"
 #include "SymbolTable.h"
 #include "ErrorCollector.h"
@@ -9,106 +10,89 @@ string ModuleNode::validate(char** sourceLines)
 {
     SymbolTable symbols;
     ErrorCollector errors(sourceLines);
-    bool mainFound = false;
 
-    for (unique_ptr<FunctionNode>& function : functions) {
+    for (shared_ptr<FunctionNode>& function : functions) {
+        if (symbols.getFunction(function->id.str) != nullptr) {
+            errors.error(function->location, 
+                         "Redefinition of function " + function->id.str);
+        } else {
+            function->validateSignature(symbols, errors);
+            symbols.setFunction(function->id.str, function);
+        }
+    }
+    
+    bool mainFound = false;
+    for (shared_ptr<FunctionNode>& function : functions) {
+        function->validateBody(symbols, errors);
+        
         if (!mainFound && function->id.str == "main") {
-            if (function->returnTypeSym.str != "void"
+            if (!function->returnType->isVoid()
                     || !function->arguments.empty()) {
                 errors.error(function->location,
                              "main must be declared as 'void main()'");
             }
             mainFound = true;
         }
-
-        if (symbols.getFunction(function->id.str) != nullptr) {
-            errors.error(function->location, 
-                         "Redefinition of function " + function->id.str);
-        } else {
-            shared_ptr<FunctionType>
-                ftype(new FunctionType(function, symbols));
-            symbols.setFunction(function->id.str, ftype);
-        }
-    }
-    
-    for (unique_ptr<FunctionNode>& function : functions) {
-        function->validate(symbols, errors);
     }
 
     return errors.getErrorString();
 }
 
-bool FunctionNode::validate(SymbolTable& symbols, ErrorCollector& errors)
+bool FunctionNode::validateSignature(SymbolTable& symbols,
+                                     ErrorCollector& errors)
 {
-    currentFunction = this;
-
-    Type returnType = symbols.getType(returnTypeSym.str);
     bool valid = true;
-
-    if (returnType == T_UNKNOWN) {
-        errors.error(returnTypeSym.location,
-                     "Return type " + returnTypeSym.str +
-                     " for function " + id.str +  " is undefined.");
-        valid = false;
-    }
-
-    if (block == nullptr) {
-        return valid;
-    }
-
-    // TODO: don't do this...
-    if (block->statements.empty()) {
-        return valid;
-    }
     
-    // this will add all arguments as local variables
-    int argumentStackOffset = 8 * 2;
+    valid &= returnType->validate(symbols, errors);
+
+    // validate arguments and set them up as locals
+    int argumentStackOffset = 8 * 2; // base pointer & return address
     for (unique_ptr<Declaration>& argument : arguments) {
-        valid &= argument->validate(symbols, errors);
-        
-        shared_ptr<Variable> var = symbols.getVariable(argument->id.str);
-        var->stackOffset = argumentStackOffset;
-        argumentStackOffset += 8; // FIXME
-    }
-    
-    valid &= block->validate(symbols, errors);
-
-    // don't bother validating return expression types if
-    // the return type is undefined TODO: fix this
-
-    // TODO: this validation should be done in the return statement
-    // validate method, however the method does not know the expected
-    // return type atm
-    if (returnType != T_UNKNOWN) {
-        for (unique_ptr<Statement>& statement : block->statements) {
-            Return* ret = dynamic_cast<Return*>(statement.get());
-            if (ret != nullptr && ret->expr->validate(symbols, errors)) {
-                Type exprType = ret->expr->getType();
-                if (exprType != returnType) {
-                    errors.unexpectedType(ret->expr->location,
-                                          returnType, exprType);
-                    valid = false;
-                }
+        if (argument->validate(symbols, errors)) {
+            if (block == nullptr) {
+                continue;
             }
+            shared_ptr<Variable> var = symbols.getVariable(argument->id.str);
+            var->stackOffset = argumentStackOffset;
+            argumentStackOffset += argument->type->size;
+        } else {
+            valid = false;
         }
     }
 
-    if (returnType != T_VOID &&
+    return valid;
+}
+
+bool FunctionNode::validateBody(SymbolTable& symbols,
+                                ErrorCollector& errors)
+{
+    bool valid = true;
+
+    if (block == nullptr) {
+        return true;
+    }
+
+    currentFunction = this;
+    valid &= block->validate(symbols, errors);
+    currentFunction = nullptr;
+
+    if (!returnType->isVoid() &&
             dynamic_cast<Return*>(block->statements.back().get()) == nullptr) {
         errors.error(location, "Function " + id.str +
                      " does not end with a return statement");
         valid = false;
     }
 
+    // TODO: fix this up
     // setup local variables
     if (valid) {
-        int stackOffset = -8;
+        int stackOffset = 0;
         for (unique_ptr<Statement>& statement : block->statements) {
             Declaration* decl = dynamic_cast<Declaration*>(statement.get());
             if (decl != nullptr) {
                 shared_ptr<Variable> var = symbols.getVariable(decl->id.str);
+                stackOffset -= var->type->size;
                 var->stackOffset = stackOffset;
-                stackOffset -= 8; // FIXME
                 locals.push_back(var);
             }
         }
@@ -143,8 +127,8 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
         return false;
     }
 
-    if (var->type != rhs->getType()) {
-        errors.unexpectedType(location, var->type, rhs->getType());
+    if (!var->type->isCompatible(rhs->type.get())) {
+        errors.unexpectedType(location, var->type.get(), rhs->type.get());
         return false;
     }
 
@@ -156,12 +140,8 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
 bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     bool valid = true;
-    Type type = symbols.getType(typeSymbol.str);
 
-    if (type == T_UNKNOWN) {
-        errors.error(location, "Undefined type: " + typeSymbol.str);
-        valid = false;
-    }
+    valid &= type->validate(symbols, errors);
 
     shared_ptr<Variable> var(new Variable());
     var->type = type;
@@ -180,21 +160,26 @@ bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
 
 bool Return::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
-    return expr->validate(symbols, errors);
+    bool exprIsValid = expr->validate(symbols, errors);
+    if (!expr->type->isCompatible(currentFunction->returnType.get())) {
+        errors.unexpectedType(location,
+            currentFunction->returnType.get(), expr->type.get());
+    }
+    return exprIsValid;
 }
 
 bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
-    shared_ptr<FunctionType> ftype = symbols.getFunction(id.str);
+    shared_ptr<FunctionNode> function = symbols.getFunction(id.str);
 
-    if (ftype == nullptr) {
+    if (function == nullptr) {
         errors.undefinedFunction(Statement::location, id.str);
         return false;
     }
     
-    type = ftype->returnType;
+    type = function->returnType;
 
-    if (ftype->argumentTypes.size() != arguments.size()) {
+    if (function->arguments.size() != arguments.size()) {
         errors.error(Statement::location, "Invalid number of arguments "
                      "for function call: " + id.str);
         return false;
@@ -204,9 +189,8 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     temporarySpace = 0;
 
-    for (size_t i = 0; i < ftype->argumentTypes.size(); i++) {
-        Type expected = ftype->argumentTypes[i];
-        argsSize += 8;
+    for (size_t i = 0; i < function->arguments.size(); i++) {
+        shared_ptr<Type> expected = function->arguments[i]->type;
         if (!arguments[i]->validate(symbols, errors)) {
             continue;
         }
@@ -215,12 +199,14 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
             temporarySpace = arguments[i]->temporarySpace;
         }
 
-        Type actual = arguments[i]->getType();
-        if (expected != actual) {
+        Type* actual = arguments[i]->type.get();
+        if (!expected->isCompatible(actual)) {
             errors.error(Statement::location, "Argument type mismatch in call "
                          "to function: " + id.str);
             return false;
         }
+
+        argsSize += expected->size;
     }
 
     if (argsSize > currentFunction->stackSpaceForArgs) {
@@ -236,9 +222,9 @@ bool If::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     if (predicate != nullptr) {
         if (predicate->validate(symbols, errors)) {
-            if (predicate->getType() != T_BOOL) {
+            if (!predicate->type->isBasicType(T_BOOL)) {
                 errors.unexpectedType(predicate->location,
-                    T_BOOL, predicate->getType());
+                    new BasicType(T_BOOL), predicate->type.get());
                 valid = false;
             }
         } else {
@@ -261,8 +247,9 @@ bool While::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     if (expr != nullptr) {
         if (expr->validate(symbols, errors)) {
-            if (expr->getType() != T_BOOL) {
-                errors.unexpectedType(expr->location, T_BOOL, expr->getType());
+            if (!expr->type->isBasicType(T_BOOL)) {
+                errors.unexpectedType(expr->location, new BasicType(T_BOOL),
+                    expr->type.get());
                 valid = false;
             }
         } else {
@@ -286,13 +273,14 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
     valid &= lhs->validate(symbols, errors);
     valid &= rhs->validate(symbols, errors);
 
+    //             FIXME
     temporarySpace = 8 + lhs->temporarySpace + rhs->temporarySpace;
     if (temporarySpace > currentFunction->temporarySpace) {
         currentFunction->temporarySpace = temporarySpace;
     }
 
-    Type operandType = T_UNKNOWN;
-    Type resultType = T_UNKNOWN;
+    BasicTypeId operandType = T_UNKNOWN;
+    BasicTypeId resultType = T_UNKNOWN;
     
     switch (op) {
         case OP_LOGICAL_OR:
@@ -317,24 +305,26 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
             operandType = T_INT64;
             resultType = T_BOOL;
             break;
+        default:
+            assert(false);
     }
 
-    if (valid && lhs->getType() != operandType) {
+    if (valid && !lhs->type->isBasicType(operandType)) {
         errors.error(location, "Operator " + binaryOpToString(op) +
                          " cannot be applied to type "
-                         + typeToString(lhs->getType()));
+                         + lhs->type->toString());
         valid = false;
     }
     
-    if (valid && rhs->getType() != operandType) {
+    if (valid && !rhs->type->isBasicType(operandType)) {
         errors.error(location, "Operator " + binaryOpToString(op) +
                          " cannot be applied to type "
-                         + typeToString(rhs->getType()));
+                         + rhs->type->toString());
         valid = false;
     }
 
     if (valid) {
-        type = resultType;
+        type.reset(new BasicType(resultType));
     }
 
     return valid;
@@ -349,7 +339,7 @@ bool UnaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
         currentFunction->temporarySpace = temporarySpace;
     }
 
-    Type expectedType = T_UNKNOWN;
+    BasicTypeId expectedType = T_UNKNOWN;
 
     if (op == OP_UNARY_MINUS) {
         expectedType = T_INT64;
@@ -357,15 +347,15 @@ bool UnaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
         expectedType = T_BOOL;
     }
 
-    if (valid && expectedType != expr->getType()) {
+    if (valid && !expr->type->isBasicType(expectedType)) {
         errors.error(location, "Operator " + unaryOpToString(op) +
                          " cannot be applied to type "
-                         + typeToString(expr->getType()));
+                         + expr->type->toString());
         valid = false;
     }
     
     if (valid) {
-        type = expectedType;
+        type.reset(new BasicType(expectedType));
     }
 
     return valid;

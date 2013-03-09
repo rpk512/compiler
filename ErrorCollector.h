@@ -18,7 +18,7 @@ public:
     void error(SourceLocation, string);
     void undefinedVariable(SourceLocation, string);
     void undefinedFunction(SourceLocation, string);
-    void unexpectedType(SourceLocation, Type, Type);
+    void unexpectedType(SourceLocation, Type*, Type*);
     string getErrorString() const;
 };
 

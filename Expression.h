@@ -4,9 +4,8 @@
 #include <memory>
 #include <string>
 #include "Type.h"
-#include "ASTNode.h"
-#include "SymbolTable.h"
 #include "Symbol.h"
+#include "SymbolTable.h"
 using namespace std;
 
 enum BinaryOperator {
@@ -35,14 +34,17 @@ string unaryOpToString(UnaryOperator);
 
 class ErrorCollector;
 
-class Expression : public ASTNode {
-protected:
-    unique_ptr<Type> type;
+class Expression {
 public:
+    SourceLocation location;
+    shared_ptr<Type> type;
     int temporarySpace = 0;
-    virtual unique_ptr<Type> getType() const {return type;};
+
     virtual ~Expression() {}
+    virtual void cgen(ostringstream&) = 0;
     virtual void docgen(ostringstream& out) {cgen(out);}
+    virtual bool validate(SymbolTable&, ErrorCollector&) = 0;
+    virtual string toString() const = 0;
 };
 
 class BinaryOpExpression : public Expression {
@@ -96,7 +98,7 @@ public:
 
 class Literal : public Expression {
 public:
-    bool validate(SymbolTable&, ErrorCollector&) const {return true;};
+    bool validate(SymbolTable&, ErrorCollector&) {return true;};
 };
 
 class BooleanLiteral : public Literal {
@@ -127,6 +129,7 @@ class StringLiteral : public Literal {
 public:
     int poolIndex;
     string value;
+
     StringLiteral(const string& value, int poolIndex) {
         this->value = value;
         this->poolIndex = poolIndex;

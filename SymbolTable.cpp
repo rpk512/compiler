@@ -19,7 +19,7 @@ SymbolTable::SymbolTable()
     basicTypeIds["void"] = T_VOID;
 }
 
-shared_ptr<FunctionType> SymbolTable::getFunction(string name) const
+shared_ptr<FunctionNode> SymbolTable::getFunction(string name) const
 {
     auto itr = functions.find(name);
     if (itr == functions.end()) {
@@ -47,7 +47,7 @@ BasicTypeId SymbolTable::getBasicTypeId(string name) const
     return itr->second;
 }
 
-void SymbolTable::setFunction(string name, shared_ptr<FunctionType> ftype)
+void SymbolTable::setFunction(string name, shared_ptr<FunctionNode> ftype)
 {
     functions[name] = ftype;
 }
@@ -62,13 +62,3 @@ void SymbolTable::clearVariables()
     variables.clear();
 }
 
-FunctionType::FunctionType(const unique_ptr<FunctionNode>& func,
-                           const SymbolTable& symbols)
-{
-    returnType = symbols.getType(func->returnTypeSym.str);
-
-    for (size_t i = 0; i < func->arguments.size(); i++) {
-        Type type = symbols.getType(func->arguments[i]->typeSymbol.str);
-        argumentTypes.push_back(type);
-    }
-}

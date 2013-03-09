@@ -43,7 +43,7 @@ void ErrorCollector::undefinedFunction(SourceLocation location, string id)
 }
 
 void ErrorCollector::unexpectedType(SourceLocation location,
-                                    unique_ptr<Type> expected, unique_ptr<Type> found)
+                                    Type* expected, Type* found)
 {
     putLoc(location);
     errors << "Expected expression of type '" << expected->toString();
