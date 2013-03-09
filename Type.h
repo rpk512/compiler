@@ -74,10 +74,10 @@ struct ArrayType : public Type {
 
     ArrayType(unique_ptr<Type> base, int elements) {
         this->elements = elements;
-        this->base = move(base);
         this->form = TF_ARRAY;
         this->size = base->size * elements + 4;
         this->location = base->location;
+        this->base = move(base);
     }
     bool validate(SymbolTable&, ErrorCollector&);
     string toString() const;
@@ -88,10 +88,10 @@ struct PointerType : public Type {
     unique_ptr<Type> base;
 
     PointerType(unique_ptr<Type> base) {
-        this->base = move(base);
         this->form = TF_POINTER;
         this->size = 8;
         this->location = base->location;
+        this->base = move(base);
     }
     bool validate(SymbolTable&, ErrorCollector&);
     string toString() const;
