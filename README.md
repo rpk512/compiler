@@ -13,6 +13,8 @@ Todo
 * Different int sizes
 * String manipulation
 * Modules
+* Improve syntax error messages
+* Setup tests for compilation errors
 
 Grammar
 =======
