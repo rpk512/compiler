@@ -3,9 +3,11 @@
 
 #include <memory>
 #include <string>
+
 #include "Type.h"
 #include "Symbol.h"
 #include "SymbolTable.h"
+
 using namespace std;
 
 enum BinaryOperator {
@@ -34,8 +36,7 @@ string unaryOpToString(UnaryOperator);
 
 class ErrorCollector;
 
-class Expression {
-public:
+struct Expression {
     SourceLocation location;
     shared_ptr<Type> type;
     int temporarySpace = 0;
@@ -47,8 +48,7 @@ public:
     virtual string toString() const = 0;
 };
 
-class BinaryOpExpression : public Expression {
-public:
+struct BinaryOpExpression : public Expression {
     BinaryOperator op;
     unique_ptr<Expression> lhs;
     unique_ptr<Expression> rhs;
@@ -66,8 +66,7 @@ public:
     void docgen(ostringstream&);
 };
 
-class UnaryOpExpression : public Expression {
-public:
+struct UnaryOpExpression : public Expression {
     UnaryOperator op;
     unique_ptr<Expression> expr;
 
@@ -82,8 +81,7 @@ public:
     void cgen(ostringstream&);
 };
 
-class VariableExpression : public Expression {
-public:
+struct VariableExpression : public Expression {
     Symbol id;
     shared_ptr<Variable> variable;
 
@@ -96,13 +94,11 @@ public:
     void cgen(ostringstream&);
 };
 
-class Literal : public Expression {
-public:
+struct Literal : public Expression {
     bool validate(SymbolTable&, ErrorCollector&) {return true;};
 };
 
-class BooleanLiteral : public Literal {
-public:
+struct BooleanLiteral : public Literal {
     bool value;
 
     BooleanLiteral(bool value) {
@@ -113,8 +109,7 @@ public:
     void cgen(ostringstream&);
 };
 
-class NumericLiteral : public Literal {
-public:
+struct NumericLiteral : public Literal {
     long value;
 
     NumericLiteral(long value) {
@@ -125,8 +120,7 @@ public:
     void cgen(ostringstream&);
 };
 
-class StringLiteral : public Literal {
-public:
+struct StringLiteral : public Literal {
     int poolIndex;
     string value;
 
