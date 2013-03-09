@@ -69,15 +69,15 @@ struct BasicType : public Type {
 };
 
 struct ArrayType : public Type {
-    unique_ptr<Type> base;
+    shared_ptr<Type> base;
     int elements;
 
-    ArrayType(unique_ptr<Type> base, int elements) {
+    ArrayType(shared_ptr<Type> base, int elements) {
         this->elements = elements;
         this->form = TF_ARRAY;
         this->size = base->size * elements + 4;
         this->location = base->location;
-        this->base = move(base);
+        this->base = base;
     }
     bool validate(SymbolTable&, ErrorCollector&);
     string toString() const;
@@ -85,13 +85,13 @@ struct ArrayType : public Type {
 };
 
 struct PointerType : public Type {
-    unique_ptr<Type> base;
+    shared_ptr<Type> base;
 
-    PointerType(unique_ptr<Type> base) {
+    PointerType(shared_ptr<Type> base) {
         this->form = TF_POINTER;
         this->size = 8;
         this->location = base->location;
-        this->base = move(base);
+        this->base = base;
     }
     bool validate(SymbolTable&, ErrorCollector&);
     string toString() const;

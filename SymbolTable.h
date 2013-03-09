@@ -11,16 +11,16 @@ using namespace std;
 class SymbolTable;
 class FunctionNode;
 
-class Variable {
-public:
+struct Variable {
     int stackOffset;
+    Symbol symbol;
     shared_ptr<Type> type;
 
-    Variable(shared_ptr<Type> type, int stackOffset) {
+    Variable(shared_ptr<Type> type, Symbol& symbol, int stackOffset) {
         this->type = type;
+        this->symbol = symbol;
         this->stackOffset = stackOffset;
     }
-
     Variable() {}
 };
 

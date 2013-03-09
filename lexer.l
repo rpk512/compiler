@@ -43,7 +43,7 @@ False RET(FALSE)
     return NUMBER;
 }
 
-[{},();=><+-/*%!\[\]] { return yytext[0]; }
+[{},();=><+-/*%!\[\]&] { return yytext[0]; }
 
 if       RET(IF)
 elif     RET(ELIF)

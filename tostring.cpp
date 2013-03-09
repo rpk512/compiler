@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iostream>
+#include <assert.h>
 #include "AST.h"
 using namespace std;
 
@@ -19,6 +20,7 @@ string binaryOpToString(BinaryOperator op) {
         case OP_MUL:         return "*";
         case OP_MOD:         return "%";
     }
+    assert(false);
 }
 
 string unaryOpToString(UnaryOperator op) {
@@ -26,7 +28,9 @@ string unaryOpToString(UnaryOperator op) {
         case OP_LOGICAL_NOT: return "!";
         case OP_UNARY_MINUS: return "-";
         case OP_DEREF:       return "*";
+        case OP_ADDRESS:     return "&";
     }
+    assert(false);
 }
 
 string typeToString(BasicTypeId type) {
@@ -43,6 +47,7 @@ string typeToString(BasicTypeId type) {
         case T_VOID:    return "void";
         case T_UNKNOWN: return "#UNKNOWN_TYPE#";
     }
+    assert(false);
 }
 
 static string indent(int size) {
@@ -147,7 +152,7 @@ string While::toString(int currentIndentLevel) const {
 
 string BinaryOpExpression::toString() const {
     if (op == OP_ARRAY_ACCESS) {
-        return lhs->toString() + "[" + rhs->toString() + "]";
+        return "(" + lhs->toString() + ")[" + rhs->toString() + "]";
     }
 
     return "(" + lhs->toString() + " " +

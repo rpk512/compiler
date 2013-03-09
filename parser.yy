@@ -36,6 +36,7 @@ int yyerror(const char*);
 %type <block> block
 %type <statement> statement
 %type <else_chain> else_chain
+%type <expression> lval_expr
 %type <expression> expr
 %type <expression> expr2
 %type <argument_list> argument_list
@@ -122,11 +123,11 @@ type:
         $$ = new BasicType(*$1);
         delete $1;
     }
-|   type '[' NUMBER ']'
+/*|   type '[' NUMBER ']'
     {
         int size = atoi($3->str.c_str());
         $$ = new ArrayType(unique_ptr<Type>($1), size);
-    }
+    }*/
 |   type '*'
     {
         $$ = new PointerType(unique_ptr<Type>($1));
@@ -192,13 +193,12 @@ statement:
         $$->location = $1->location;
         delete $2;
     }
-|   ID '=' expr ';'
+|   lval_expr '=' expr ';'
     {
         Assignment* ass = new Assignment();
-        ass->id = *$1;
+        ass->lhs.reset($1);
         ass->rhs.reset($3);
         ass->location = $1->location;
-        delete $1;
 
         $$ = ass;
     }
@@ -257,6 +257,27 @@ function_call:
         $$->arguments = vector<unique_ptr<Expression>>();
         $$->Statement::location = $$->id.location;
         delete $1;
+    }
+;
+
+lval_expr:
+    ID
+    {
+        $$ = new VariableExpression(*$1);
+        $$->location = $1->location;
+        delete $1;
+    }
+|   '*' lval_expr
+    {
+        $$ = new UnaryOpExpression(OP_DEREF, $2);
+    }
+|   '&' lval_expr
+    {
+        $$ = new UnaryOpExpression(OP_ADDRESS, $2);
+    }
+|   '(' lval_expr ')'
+    {
+        $$ = $2;
     }
 ;
 
@@ -325,6 +346,10 @@ expr:
     {
         $$ = new BinaryOpExpression(OP_MOD, $1, $3);
     }
+/*|   expr '[' expr ']'
+    {
+        $$ = new BinaryOpExpression(OP_ARRAY_ACCESS, $1, $3);
+    }*/
 |   expr2
     {
         $$ = $1;
@@ -372,13 +397,21 @@ expr2:
     }
 |   '!' expr2
     {
-        $$ = new UnaryOpExpression(OP_UNARY_LOGICAL_NOT, $2);
+        $$ = new UnaryOpExpression(OP_LOGICAL_NOT, $2);
         // TODO: location should be the location of ! not the expression
     }
 |   '-' expr2
     {
         $$ = new UnaryOpExpression(OP_UNARY_MINUS, $2);
         // TODO: location should be the location of - not the expression
+    }
+|   '*' expr2
+    {
+        $$ = new UnaryOpExpression(OP_DEREF, $2);
+    }
+|   '&' expr2
+    {
+        $$ = new UnaryOpExpression(OP_ADDRESS, $2);
     }
 ;
 

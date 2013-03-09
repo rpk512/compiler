@@ -73,9 +73,8 @@ struct Statement {
 };
 
 struct Assignment : public Statement {
-    Symbol id;
     unique_ptr<Expression> rhs;
-    shared_ptr<Variable> variable;
+    unique_ptr<Expression> lhs;
     
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
@@ -111,6 +110,7 @@ struct Return : public Statement {
 
 struct FunctionCall : public Statement, public Expression {
     Symbol id;
+    shared_ptr<FunctionNode> function;
     vector<unique_ptr<Expression>> arguments;
 
 // TODO: add constructor
@@ -118,6 +118,8 @@ struct FunctionCall : public Statement, public Expression {
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostringstream&);
+    void cgen(ostringstream&, bool);
+    bool isAddressable() const {return false;}
 };
 
 struct If : public Statement {

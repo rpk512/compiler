@@ -20,5 +20,6 @@ output
 parser.tab.hh
 parser.yy.cpp
 lexer.yy.cpp
+bison_report
 
 *.swp

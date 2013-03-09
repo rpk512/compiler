@@ -23,12 +23,15 @@ enum BinaryOperator {
     OP_SUB,
     OP_DIV,
     OP_MUL,
-    OP_MOD
+    OP_MOD,
+    OP_ARRAY_ACCESS
 };
 
 enum UnaryOperator {
-    OP_UNARY_LOGICAL_NOT,
-    OP_UNARY_MINUS
+    OP_LOGICAL_NOT,
+    OP_UNARY_MINUS,
+    OP_ADDRESS,
+    OP_DEREF
 };
 
 string binaryOpToString(BinaryOperator);
@@ -42,10 +45,13 @@ struct Expression {
     int temporarySpace = 0;
 
     virtual ~Expression() {}
-    virtual void cgen(ostringstream&) = 0;
-    virtual void docgen(ostringstream& out) {cgen(out);}
+    virtual void cgen(ostringstream&, bool genAddress=false) = 0;
+    virtual void docgen(ostringstream& out, bool genAddress=false) {
+        cgen(out, genAddress);
+    }
     virtual bool validate(SymbolTable&, ErrorCollector&) = 0;
     virtual string toString() const = 0;
+    virtual bool isAddressable() const = 0;
 };
 
 struct BinaryOpExpression : public Expression {
@@ -62,8 +68,9 @@ struct BinaryOpExpression : public Expression {
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
-    void docgen(ostringstream&);
+    void cgen(ostringstream&, bool);
+    void docgen(ostringstream&, bool);
+    bool isAddressable() const {return op == OP_ARRAY_ACCESS;}
 };
 
 struct UnaryOpExpression : public Expression {
@@ -78,7 +85,8 @@ struct UnaryOpExpression : public Expression {
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostringstream&, bool);
+    bool isAddressable() const {return op == OP_DEREF;}
 };
 
 struct VariableExpression : public Expression {
@@ -91,11 +99,13 @@ struct VariableExpression : public Expression {
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostringstream&, bool);
+    bool isAddressable() const {return true;}
 };
 
 struct Literal : public Expression {
     bool validate(SymbolTable&, ErrorCollector&) {return true;};
+    bool isAddressable() const {return false;}
 };
 
 struct BooleanLiteral : public Literal {
@@ -106,7 +116,7 @@ struct BooleanLiteral : public Literal {
         type.reset(new BasicType(T_BOOL));
     }
     string toString() const;
-    void cgen(ostringstream&);
+    void cgen(ostringstream&, bool);
 };
 
 struct NumericLiteral : public Literal {
@@ -117,7 +127,7 @@ struct NumericLiteral : public Literal {
         type.reset(new BasicType(T_INT64));
     }
     string toString() const;
-    void cgen(ostringstream&);
+    void cgen(ostringstream&, bool);
 };
 
 struct StringLiteral : public Literal {
@@ -130,7 +140,7 @@ struct StringLiteral : public Literal {
         type.reset(new BasicType(T_STRING));
     }
     string toString() const;
-    void cgen(ostringstream&);
+    void cgen(ostringstream&, bool);
 };
 
 #endif

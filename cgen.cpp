@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "AST.h"
 
@@ -71,18 +72,22 @@ void Block::cgen(ostringstream& out)
 
 void Assignment::cgen(ostringstream& out)
 {
+    lhs->cgen(out, true);
+    out << "mov r8, rax\n";
     rhs->cgen(out);
-    out << "mov [rbp";
-    if (variable->stackOffset >= 0) {
-        out << "+";
-    }
-    out << variable->stackOffset << "], rax\n";
+    out << "mov [r8], rax\n";
 }
 
 void Return::cgen(ostringstream& out)
 {
     expr->cgen(out);
     out << "jmp .return\n";
+}
+
+void FunctionCall::cgen(ostringstream& out, bool genAddress)
+{
+    assert(!genAddress);
+    cgen(out);
 }
 
 void FunctionCall::cgen(ostringstream& out)
@@ -140,22 +145,26 @@ void While::cgen(ostringstream& out)
 // Expressions
 //
 
-void BinaryOpExpression::cgen(ostringstream& out)
+void BinaryOpExpression::cgen(ostringstream& out, bool genAddress)
 {
     int startTempIndex = state.tempIndex;
-    docgen(out);
+    docgen(out, genAddress);
     state.tempIndex = startTempIndex;
 }
 
-void BinaryOpExpression::docgen(ostringstream& out)
+void BinaryOpExpression::docgen(ostringstream& out, bool genAddress)
 {
+    if (genAddress) {
+        assert(op == OP_ARRAY_ACCESS);
+    }
+
     int shortCircuitLabel;
     int tempLocation =
         state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
     string temp = "[rsp+" + to_string(tempLocation) + "]";
     state.tempIndex++;
 
-    lhs->docgen(out);
+    lhs->docgen(out, op == OP_ARRAY_ACCESS);
 
     if (op == OP_LOGICAL_AND || op == OP_LOGICAL_OR) {
         if (op == OP_LOGICAL_AND) {
@@ -227,16 +236,51 @@ void BinaryOpExpression::docgen(ostringstream& out)
     }
 }
 
-void UnaryOpExpression::cgen(ostringstream& out)
+void UnaryOpExpression::cgen(ostringstream& out, bool genAddress)
 {
+    if (genAddress) {
+        assert(op == OP_DEREF);
+    }
+
+    if (op == OP_ADDRESS) {
+        UnaryOpExpression* uopExpr =
+            dynamic_cast<UnaryOpExpression*>(expr.get());
+        if (uopExpr != nullptr) {
+            assert(uopExpr->op == OP_DEREF);
+            expr->cgen(out);
+            return;
+        }
+
+        BinaryOpExpression* bopExpr =
+            dynamic_cast<BinaryOpExpression*>(expr.get());
+        if (bopExpr != nullptr) {
+            assert(bopExpr->op == OP_ARRAY_ACCESS);
+            assert(false); // not implemented yet
+            return;
+        }
+
+        VariableExpression* varExpr =
+            dynamic_cast<VariableExpression*>(expr.get());
+        if (varExpr != nullptr) {
+            out << "lea rax, [rbp+" << varExpr->variable->stackOffset << "]\n";
+            return;
+        }
+        assert(false);
+    }
+
     expr->cgen(out);
     switch (op) {
-        case OP_UNARY_LOGICAL_NOT:
+        case OP_LOGICAL_NOT:
             out << "xor rax, 1\n";
             break;
         case OP_UNARY_MINUS:
             out << "not rax\n";
             out << "inc rax\n";
+            break;
+        case OP_DEREF:
+            if (!genAddress) {
+                out << "mov rax, [rax]\n";
+            }
             break;
         default:
             cout << "BUG: unknown op: " << op << endl;
@@ -244,26 +288,30 @@ void UnaryOpExpression::cgen(ostringstream& out)
     }
 }
 
-void VariableExpression::cgen(ostringstream& out)
+void VariableExpression::cgen(ostringstream& out, bool genAddress)
 {
-    out << "mov rax, [rbp";
-    if (variable->stackOffset >= 0) {
-        out << "+";
+    if (genAddress) {
+        out << "lea";
+    } else {
+        out << "mov";
     }
-    out << variable->stackOffset<< "]\n";
+    out << " rax, [rbp+" << variable->stackOffset<< "]\n";
 }
 
-void BooleanLiteral::cgen(ostringstream& out)
+void BooleanLiteral::cgen(ostringstream& out, bool genAddress)
 {
+    assert(!genAddress);
     out << "mov rax, " << value << "\n";
 }
 
-void NumericLiteral::cgen(ostringstream& out)
+void NumericLiteral::cgen(ostringstream& out, bool genAddress)
 {
+    assert(!genAddress);
     out << "mov rax, " << value << "\n";
 }
 
-void StringLiteral::cgen(ostringstream& out)
+void StringLiteral::cgen(ostringstream& out, bool genAddress)
 {
+    assert(!genAddress);
     out << "mov rax, D$" << poolIndex << "\n";
 }

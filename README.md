@@ -9,7 +9,6 @@ Required Tools
 Todo
 ====
 * Arrays
-* Pointers
 * Different int sizes
 * String manipulation
 * Modules
@@ -29,7 +28,7 @@ Grammar
 
     <statement> ::= <declaration> | <assignment> | <while> | <if> | <return> | (<function_call> ";")
 
-    <assigment> ::= <id> "=" <expr> ";"
+    <assigment> ::= <expr> "=" <expr> ";"
 
     <declaration> ::= <type> <id> ";"
 
@@ -51,10 +50,11 @@ Grammar
     <expr_3> ::= <expr_4> [ ("<" | "<=" | ">" | ">=") <expr_3> ]
     <expr_4> ::= <expr_5> [ ("+" | "-")               <expr_4> ]
     <expr_5> ::= <expr_6> [ ("/" | "*" | "%")         <expr_5> ]
-    <expr_6> ::=          [ ("!" | "-") ]             <expr_7>
+    <expr_6> ::=          [ ("!" | "-" | "*" | "&") ] <expr_7>
     <expr_7> ::= <value> | ( "(" <expr> ")" )
 
-    <type> ::= "int" | "int64" | "bool" | "string"
+    <basic_type> ::= "int" | "int64" | "bool" | "string"
+    <type> ::= (<type> "*") | <basic_type>
 
     <id> ::= <letter_> { <letter_> | <digit> }
     <letter_> ::= A-Z | a-z | _

@@ -48,17 +48,16 @@ bool FunctionNode::validateSignature(SymbolTable& symbols,
     // validate arguments and set them up as locals
     int argumentStackOffset = 8 * 2; // base pointer & return address
     for (unique_ptr<Declaration>& argument : arguments) {
-        if (argument->validate(symbols, errors)) {
-            shared_ptr<Variable> var = symbols.getVariable(argument->id.str);
-            var->stackOffset = argumentStackOffset;
+        if (argument->type->validate(symbols, errors)) {
+            shared_ptr<Variable> var(
+                new Variable(argument->type,
+                             argument->id,
+                             argumentStackOffset));
+            locals.push_back(var);
             argumentStackOffset += argument->type->size;
         } else {
             valid = false;
         }
-    }
-
-    if (block == nullptr) {
-        symbols.clearVariables();
     }
 
     return valid;
@@ -71,6 +70,11 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
 
     if (block == nullptr) {
         return true;
+    }
+
+    // arguments are already in the locals list, put them in the symbol table
+    for (shared_ptr<Variable>& var : locals) {
+        symbols.setVariable(var->symbol.str, var);
     }
 
     currentFunction = this;
@@ -117,10 +121,12 @@ bool Block::validate(SymbolTable& symbols, ErrorCollector& errors)
 
 bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
-    shared_ptr<Variable> var = symbols.getVariable(id.str);
+    if (!lhs->validate(symbols, errors)) {
+        return false;
+    }
 
-    if (var == nullptr) {
-        errors.undefinedVariable(location, id.str);
+    if (!lhs->isAddressable()) {
+        errors.error(lhs->location, "lvalue expected");
         return false;
     }
 
@@ -128,12 +134,10 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
         return false;
     }
 
-    if (!var->type->isCompatible(rhs->type.get())) {
-        errors.unexpectedType(location, var->type.get(), rhs->type.get());
+    if (!lhs->type->isCompatible(rhs->type.get())) {
+        errors.unexpectedType(location, lhs->type.get(), rhs->type.get());
         return false;
     }
-
-    variable = var;
 
     return true;
 }
@@ -171,7 +175,7 @@ bool Return::validate(SymbolTable& symbols, ErrorCollector& errors)
 
 bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
-    shared_ptr<FunctionNode> function = symbols.getFunction(id.str);
+    function = symbols.getFunction(id.str);
 
     if (function == nullptr) {
         errors.undefinedFunction(Statement::location, id.str);
@@ -270,9 +274,27 @@ bool While::validate(SymbolTable& symbols, ErrorCollector& errors)
 bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     bool valid = true;
-    
     valid &= lhs->validate(symbols, errors);
     valid &= rhs->validate(symbols, errors);
+
+    if (!valid) {
+        return false;
+    }
+
+    if (op == OP_ARRAY_ACCESS) {
+        if (lhs->type->form != TF_ARRAY) {
+            errors.error(lhs->location, "Expected array type, found '"+
+                            lhs->type->toString() +"'");
+            return false;
+        }
+        if (!rhs->type->isBasicType(T_INT64)) {
+            errors.unexpectedType(rhs->location, new BasicType(T_INT64),
+                                    rhs->type.get());
+            return false;
+        }
+        type = ((ArrayType*)lhs->type.get())->base;
+        return true;
+    }
 
     //             FIXME
     temporarySpace = 8 + lhs->temporarySpace + rhs->temporarySpace;
@@ -310,30 +332,29 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
             assert(false);
     }
 
-    if (valid && !lhs->type->isBasicType(operandType)) {
+    if (!lhs->type->isBasicType(operandType)) {
         errors.error(location, "Operator " + binaryOpToString(op) +
                          " cannot be applied to type "
                          + lhs->type->toString());
-        valid = false;
+        return false;
     }
     
-    if (valid && !rhs->type->isBasicType(operandType)) {
+    if (!rhs->type->isBasicType(operandType)) {
         errors.error(location, "Operator " + binaryOpToString(op) +
                          " cannot be applied to type "
                          + rhs->type->toString());
-        valid = false;
+        return false;
     }
 
-    if (valid) {
-        type.reset(new BasicType(resultType));
-    }
-
-    return valid;
+    type.reset(new BasicType(resultType));
+    return true;
 }
 
 bool UnaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
-    bool valid = expr->validate(symbols, errors);
+    if (!expr->validate(symbols, errors)) {
+        return false;
+    }
     
     temporarySpace = expr->temporarySpace;
     if (temporarySpace > currentFunction->temporarySpace) {
@@ -342,24 +363,37 @@ bool UnaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     BasicTypeId expectedType = T_UNKNOWN;
 
-    if (op == OP_UNARY_MINUS) {
-        expectedType = T_INT64;
-    } else if (op == OP_UNARY_LOGICAL_NOT) {
-        expectedType = T_BOOL;
-    }
+    if (op == OP_UNARY_MINUS || op == OP_LOGICAL_NOT) {
+        if (op == OP_UNARY_MINUS) {
+            expectedType = T_INT64;
+        } else if (op == OP_LOGICAL_NOT) {
+            expectedType = T_BOOL;
+        }
 
-    if (valid && !expr->type->isBasicType(expectedType)) {
-        errors.error(location, "Operator " + unaryOpToString(op) +
-                         " cannot be applied to type "
-                         + expr->type->toString());
-        valid = false;
-    }
-    
-    if (valid) {
+        if (!expr->type->isBasicType(expectedType)) {
+            errors.error(location, "Operator " + unaryOpToString(op) +
+                             " cannot be applied to type "
+                             + expr->type->toString());
+            return false;
+        }
         type.reset(new BasicType(expectedType));
+    } else if (op == OP_ADDRESS) {
+        if (!expr->isAddressable()) {
+            errors.error(expr->location, "Expression is not addressable");
+            return false;
+        }
+        type.reset(new PointerType(expr->type));
+    } else if (op == OP_DEREF) {
+        if (expr->type->form != TF_POINTER) {
+            errors.error(expr->location, "Expected pointer type");
+            return false;
+        }
+        type = ((PointerType*)expr->type.get())->base;
+    } else {
+        assert(false);
     }
 
-    return valid;
+    return true;
 }
 
 bool VariableExpression::validate(SymbolTable& symbols, ErrorCollector& errors)

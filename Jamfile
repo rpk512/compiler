@@ -11,7 +11,7 @@ actions Flex
 
 actions Bison
 {
-    bison -Wall -o $(1) --defines=parser.tab.hh $(2)
+    bison -Wall -o $(1) -v --report-file=bison_report --defines=parser.tab.hh $(2)
 }
 
 rule Lexer
@@ -26,7 +26,7 @@ rule Parser
     Depends parser.yy.cpp : parser.yy ;
     Depends parser.tab.hh : parser.yy.cpp parser.yy ;
     Bison parser.yy.cpp : parser.yy ;
-    Clean clean : parser.yy.cpp parser.tab.hh ;
+    Clean clean : parser.yy.cpp parser.tab.hh bison_report ;
 }
 
 Lexer ;
