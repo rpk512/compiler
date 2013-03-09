@@ -383,7 +383,11 @@ bool VariableExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 bool BasicType::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     typeId = symbols.getBasicTypeId(symbol.str);
-    return typeId != T_UNKNOWN;
+    if (typeId == T_UNKNOWN) {
+        errors.error(location, "Undefined type: " + symbol.str);
+        return false;
+    }
+    return true;
 }
 
 bool ArrayType::validate(SymbolTable& symbols, ErrorCollector& errors)
