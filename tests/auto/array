@@ -1,0 +1,30 @@
+extern void print_line(string s);
+extern void exit(int n);
+
+void assert(bool condition) {
+    if (!condition) {
+        print_line("fail");
+        exit(1);
+    }
+}
+
+void main() {
+    var a int[10];
+    var p int*[10];
+    var i int;
+
+    i = 0;
+    while (i < 10) {
+        p[i] = &a[i];
+        *p[i] = i + 1;
+        i = i + 1;
+    }
+
+    i = 0;
+    while (i < 10) {
+        assert(a[i] == i + 1);
+        i = i + 1;
+    }
+
+    print_line("PASS");
+}
