@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iostream>
 #include "AST.h"
 #include "SymbolTable.h"
 #include "ErrorCollector.h"
@@ -113,13 +114,17 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
 
     symbols.clearVariables();
 
+    if (tailCalls.empty()) {
+        isTailRecursive = false;
+    }
+
     return valid;
 }
 
 bool Block::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     bool valid = true;
-    for (const unique_ptr<Statement>& statement : statements) {
+    for (unique_ptr<Statement>& statement : statements) {
         valid &= statement->validate(symbols, errors);
     }
     return valid;
@@ -176,11 +181,19 @@ bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
 
 bool Return::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
+    if (currentFunction->isTailRecursive) {
+        FunctionCall* call = dynamic_cast<FunctionCall*>(expr.get());
+        if (call != nullptr) {
+            currentFunction->tailCalls.insert(call);
+        }
+    }
+
     bool exprIsValid = expr->validate(symbols, errors);
     if (!expr->type->isCompatible(currentFunction->returnType.get())) {
         errors.unexpectedType(location,
             currentFunction->returnType.get(), expr->type.get());
     }
+
     return exprIsValid;
 }
 
@@ -192,7 +205,7 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
         errors.undefinedFunction(Statement::location, id.str);
         return false;
     }
-    
+
     type = function->returnType;
 
     if (function->arguments.size() != arguments.size()) {
@@ -211,6 +224,8 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
             continue;
         }
 
+        assert(dynamic_cast<ArrayType*>(arguments[i]->type.get()) == nullptr);
+
         if (arguments[i]->temporarySpace > temporarySpace) {
             temporarySpace = arguments[i]->temporarySpace;
         }
@@ -227,6 +242,13 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     if (argsSize > currentFunction->stackSpaceForArgs) {
         currentFunction->stackSpaceForArgs = argsSize;
+    }
+
+    if (currentFunction->isTailRecursive &&
+            function.get() == currentFunction &&
+            currentFunction->tailCalls.find(this) ==
+                currentFunction->tailCalls.end()) {
+        currentFunction->isTailRecursive = false;
     }
 
     return true;

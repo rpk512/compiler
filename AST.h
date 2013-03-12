@@ -2,6 +2,7 @@
 #define AST_H
 
 #include <vector>
+#include <set>
 #include <string>
 #include <sstream>
 #include <memory>
@@ -34,7 +35,7 @@ struct ModuleNode {
 
     string toString() const;
     string validate(char**);
-    string cgen();
+    string cgen(bool);
 };
 
 struct FunctionNode {
@@ -46,6 +47,8 @@ struct FunctionNode {
     Symbol id;
     int stackSpaceForArgs = 0;
     int temporarySpace = 0;
+    bool isTailRecursive = true;
+    set<FunctionCall*> tailCalls;
 
     string toString() const;
     bool validateSignature(SymbolTable&, ErrorCollector&);

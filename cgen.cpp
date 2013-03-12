@@ -10,13 +10,16 @@ struct CGenState {
     FunctionNode* currentFunction;
     int labelCount = 0;
     int tempIndex = 0;
+    bool eliminateTailCalls;
 };
 
 CGenState state;
 
-string ModuleNode::cgen()
+string ModuleNode::cgen(bool eliminateTailCalls)
 {
     ostringstream out;
+
+    state.eliminateTailCalls = eliminateTailCalls;
 
     out << "; vim: set syntax=nasm:\n";
     out << "%include \"lib.s\"\n";
@@ -53,10 +56,14 @@ void FunctionNode::cgen(ostringstream& out)
         stackSpace += var->type->size;
     }
     
-    out << id.str << ": \n";
+    out << id.str << ":\n";
     out << "push rbp\n";
     out << "mov rbp, rsp\n";
     out << "sub rsp, " << stackSpace << "\n";
+
+    if (isTailRecursive && state.eliminateTailCalls) {
+        out << id.str << "_tail_call:\n";
+    }
 
     block->cgen(out);
 
@@ -95,15 +102,31 @@ void FunctionCall::cgen(ostringstream& out, bool genAddress)
 
 void FunctionCall::cgen(ostringstream& out)
 {
+    bool tailCall = state.eliminateTailCalls &&
+                    state.currentFunction == function.get() &&
+                    state.currentFunction->isTailRecursive;
     int stackPosition = 0;
 
     for (unique_ptr<Expression>& argument : arguments) {
         argument->cgen(out);
+        // TODO: support things bigger than 8 bytes here
         out << "mov [rsp+" << stackPosition << "], rax\n";
         stackPosition += 8;
     }
 
-    out << "call " << id.str << "\n";
+    if (tailCall) {
+        int tempPosition = 0;
+        int argPosition = 8 * 2;
+        for (int i = 0; i < arguments.size(); i++) {
+            out << "mov rax, [rsp+" << tempPosition << "]\n";
+            out << "mov [rbp+" << argPosition << "], rax\n";
+            tempPosition += 8;
+            argPosition += 8;
+        }
+        out << "jmp " << id.str << "_tail_call" << "\n";
+    } else {
+        out << "call " << id.str << "\n";
+    }
 }
 
 void If::cgen(ostringstream& out)

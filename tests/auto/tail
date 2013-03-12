@@ -1,0 +1,17 @@
+extern void print_line(string s);
+extern void print64(int n);
+
+int sum_tail(int n, int s) {
+    if (n <= 0) {
+        return s;
+    }
+    return sum_tail(n - 1, s + n);
+}
+
+void main() {
+    if (sum_tail(10000000, 0) == 50000005000000) {
+        print_line("PASS");
+    } else {
+        print_line("FAIL");
+    }
+}

@@ -348,7 +348,7 @@ expr2:
 |   NUMBER
     {
         // TODO: check for out of range literals
-        $$ = new NumericLiteral(atoi($1->str.c_str()));
+        $$ = new NumericLiteral(atol($1->str.c_str()));
         $$->location = $1->location;
         delete $1;
     }

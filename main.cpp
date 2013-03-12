@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 
     char** sourceLines = getLines(sourceCode);
 
-    unique_ptr<ModuleNode> ast(parse(sourceCode, args.isFlagSet("debugParser")));
+    unique_ptr<ModuleNode> ast(parse(sourceCode, args.isFlagSet("-debug-parser")));
 
     if (args.isFlagSet("printAST")) {
         cout << ast->toString() << endl;
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     if (errors.length() == 0) {
         ofstream out("output.s", ios::trunc);
         if (out) {
-            out << ast->cgen();
+            out << ast->cgen(args.isFlagSet("-eliminate-tail-recursion"));
             out.close();
             assembleAndLink();
         } else {
