@@ -257,8 +257,10 @@ void BinaryOpExpression::docgen(ostringstream& out, bool genAddress)
         case OP_LOGICAL_OR:
             break;
         case OP_ARRAY_ACCESS:
+            out << "mov rcx, " << type->size << "\n";
+            out << "imul rcx\n";
             out << "mov rcx, " << temp << "\n";
-            out << "lea rax, [" << type->size << "*rax+rcx]\n";
+            out << "add rax, rcx\n";
             if (!genAddress) {
                 out << "mov rax, [rax]\n";
             }

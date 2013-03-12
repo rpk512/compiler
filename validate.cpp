@@ -313,6 +313,12 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
     if (!valid) {
         return false;
     }
+    
+    //             FIXME
+    temporarySpace = 8 + lhs->temporarySpace + rhs->temporarySpace;
+    if (temporarySpace > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = temporarySpace;
+    }
 
     if (op == OP_ARRAY_ACCESS) {
         if (lhs->type->form != TF_ARRAY) {
@@ -327,12 +333,6 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
         }
         type = ((ArrayType*)lhs->type.get())->base;
         return true;
-    }
-
-    //             FIXME
-    temporarySpace = 8 + lhs->temporarySpace + rhs->temporarySpace;
-    if (temporarySpace > currentFunction->temporarySpace) {
-        currentFunction->temporarySpace = temporarySpace;
     }
 
     BasicTypeId operandType = T_UNKNOWN;
