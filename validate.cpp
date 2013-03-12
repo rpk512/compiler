@@ -45,6 +45,11 @@ bool FunctionNode::validateSignature(SymbolTable& symbols,
     
     valid &= returnType->validate(symbols, errors);
 
+    if (valid && returnType->size != 8) {
+        errors.error(location, "Only 8 byte values may be returned.");
+        valid = false;
+    }
+
     // validate arguments and set them up as locals
     int argumentStackOffset = 8 * 2; // base pointer & return address
     for (unique_ptr<Declaration>& argument : arguments) {
@@ -82,7 +87,8 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
     currentFunction = nullptr;
 
     if (!returnType->isVoid() &&
-            dynamic_cast<Return*>(block->statements.back().get()) == nullptr) {
+            (block->statements.empty() ||
+             dynamic_cast<Return*>(block->statements.back().get()) == nullptr)) {
         errors.error(location, "Function " + id.str +
                      " does not end with a return statement");
         valid = false;
@@ -122,6 +128,11 @@ bool Block::validate(SymbolTable& symbols, ErrorCollector& errors)
 bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     if (!lhs->validate(symbols, errors)) {
+        return false;
+    }
+
+    if (dynamic_cast<ArrayType*>(lhs->type.get()) != nullptr) {
+        errors.error(lhs->location, "Cannot assign to an array");
         return false;
     }
 

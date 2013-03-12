@@ -48,7 +48,10 @@ void FunctionNode::cgen(ostringstream& out)
 
     state.labelCount = 0;
 
-    int stackSpace = locals.size() * 8 + stackSpaceForArgs + temporarySpace;
+    int stackSpace = stackSpaceForArgs + temporarySpace;
+    for (shared_ptr<Variable>& var : locals) {
+        stackSpace += var->type->size;
+    }
     
     out << id.str << ": \n";
     out << "push rbp\n";
@@ -230,6 +233,13 @@ void BinaryOpExpression::docgen(ostringstream& out, bool genAddress)
         case OP_LOGICAL_AND:
         case OP_LOGICAL_OR:
             break;
+        case OP_ARRAY_ACCESS:
+            out << "mov rcx, " << temp << "\n";
+            out << "lea rax, [" << type->size << "*rax+rcx]\n";
+            if (!genAddress) {
+                out << "mov rax, [rax]\n";
+            }
+            break;
         default:
             cout << "BUG: unknown op: " << op << endl;
             exit(1);
@@ -255,7 +265,7 @@ void UnaryOpExpression::cgen(ostringstream& out, bool genAddress)
             dynamic_cast<BinaryOpExpression*>(expr.get());
         if (bopExpr != nullptr) {
             assert(bopExpr->op == OP_ARRAY_ACCESS);
-            assert(false); // not implemented yet
+            expr->cgen(out, true);
             return;
         }
 

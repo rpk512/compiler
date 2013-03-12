@@ -9,8 +9,8 @@ void assert(bool condition) {
 }
 
 void main() {
-    int a;
-    int b;
+    var a int;
+    var b int;
 
     a = 32 * -64;
     assert(a == -2048);

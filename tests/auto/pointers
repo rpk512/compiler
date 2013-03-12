@@ -1,4 +1,3 @@
-extern void print64(int n);
 extern void print_line(string s);
 extern void exit(int n);
 
@@ -18,14 +17,14 @@ void test2(int** ptrptr) {
 }
 
 void main() {
-    int i;
+    var i int;
 
     i = 0;
     test1(&i);
     assert(i == 12345);
 
-    int* ptr;
-    int** ptrptr;
+    var ptr int*;
+    var ptrptr int**;
 
     ptr = &i;
     assert(*ptr == 12345);
@@ -37,7 +36,7 @@ void main() {
     **ptrptr = 54321;
     assert(i == 54321);
 
-    int j;
+    var j int;
     j = 0;
     j = *ptr;
     assert(j == 54321);

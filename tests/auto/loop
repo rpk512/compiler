@@ -1,8 +1,8 @@
 extern void print_line(string s);
 
 void main() {
-    int i;
-    int n;
+    var i int;
+    var n int;
 
     n = 0;
     i = 1;

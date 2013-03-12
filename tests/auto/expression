@@ -2,7 +2,7 @@ extern void print_line(string s);
 extern void print64(int n);
 
 void main() {
-    int x;
+    var x int;
 
     x = ---5 * (4 + 3 + 2 * (5 + 1)) / 10 * 12 - 3 * (((2)-1)-1);
     

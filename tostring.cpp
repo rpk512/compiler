@@ -45,6 +45,7 @@ string typeToString(BasicTypeId type) {
         case T_U64:     return "u64";
         case T_BOOL:    return "bool";
         case T_VOID:    return "void";
+        case T_STRING:  return "string";
         case T_UNKNOWN: return "#UNKNOWN_TYPE#";
     }
     assert(false);

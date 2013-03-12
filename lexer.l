@@ -51,6 +51,7 @@ else     RET(ELSE)
 while    RET(WHILE)
 return   RET(RETURN)
 extern   RET(EXTERN)
+var      RET(VAR)
 
 "==" RET(EQUAL)
 "!=" RET(NOT_EQUAL)

@@ -36,7 +36,6 @@ int yyerror(const char*);
 %type <block> block
 %type <statement> statement
 %type <else_chain> else_chain
-%type <expression> lval_expr
 %type <expression> expr
 %type <expression> expr2
 %type <argument_list> argument_list
@@ -50,6 +49,7 @@ int yyerror(const char*);
 %token<location> ELIF
 %token<location> ELSE
 %token<location> EXTERN
+%token<location> VAR
 
 %token<location> EQUAL
 %token<location> NOT_EQUAL
@@ -73,6 +73,9 @@ int yyerror(const char*);
 %left '<' '>' LE GE
 %left '+' '-'
 %left '/' '*' '%'
+%left '&'
+%left '!'
+%left '['
 
 %%
 
@@ -123,11 +126,11 @@ type:
         $$ = new BasicType(*$1);
         delete $1;
     }
-/*|   type '[' NUMBER ']'
+|   type '[' NUMBER ']'
     {
         int size = atoi($3->str.c_str());
         $$ = new ArrayType(unique_ptr<Type>($1), size);
-    }*/
+    }
 |   type '*'
     {
         $$ = new PointerType(unique_ptr<Type>($1));
@@ -187,13 +190,13 @@ statement_list:
 ;
 
 statement:
-    type ID ';'
+    VAR ID type ';'
     {
-        $$ = new Declaration($1, *$2, nullptr);
-        $$->location = $1->location;
+        $$ = new Declaration($3, *$2, nullptr);
+        $$->location = $2->location;
         delete $2;
     }
-|   lval_expr '=' expr ';'
+|   expr '=' expr ';'
     {
         Assignment* ass = new Assignment();
         ass->lhs.reset($1);
@@ -257,27 +260,6 @@ function_call:
         $$->arguments = vector<unique_ptr<Expression>>();
         $$->Statement::location = $$->id.location;
         delete $1;
-    }
-;
-
-lval_expr:
-    ID
-    {
-        $$ = new VariableExpression(*$1);
-        $$->location = $1->location;
-        delete $1;
-    }
-|   '*' lval_expr
-    {
-        $$ = new UnaryOpExpression(OP_DEREF, $2);
-    }
-|   '&' lval_expr
-    {
-        $$ = new UnaryOpExpression(OP_ADDRESS, $2);
-    }
-|   '(' lval_expr ')'
-    {
-        $$ = $2;
     }
 ;
 
@@ -346,10 +328,6 @@ expr:
     {
         $$ = new BinaryOpExpression(OP_MOD, $1, $3);
     }
-/*|   expr '[' expr ']'
-    {
-        $$ = new BinaryOpExpression(OP_ARRAY_ACCESS, $1, $3);
-    }*/
 |   expr2
     {
         $$ = $1;
@@ -357,19 +335,15 @@ expr:
 ;
 
 expr2:
-    '(' expr ')'
-    {
-        $$ = $2;
-    }
-|   function_call
-    {
-        $$ = $1;
-    }
-|   ID
+    ID
     {
         $$ = new VariableExpression(*$1);
         $$->location = $1->location;
         delete $1;
+    }
+|   function_call
+    {
+        $$ = $1;
     }
 |   NUMBER
     {
@@ -412,6 +386,14 @@ expr2:
 |   '&' expr2
     {
         $$ = new UnaryOpExpression(OP_ADDRESS, $2);
+    }
+|   '(' expr ')'
+    {
+        $$ = $2;
+    }
+|   expr2 '[' expr ']'
+    {
+        $$ = new BinaryOpExpression(OP_ARRAY_ACCESS, $1, $3);
     }
 ;
 

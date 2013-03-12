@@ -1,7 +1,7 @@
 extern void print_line(string str);
 
 void main() {
-    string hello;
+    var hello string;
 
     hello = "Hello, World!";
 

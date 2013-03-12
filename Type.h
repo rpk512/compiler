@@ -60,6 +60,7 @@ struct BasicType : public Type {
         this->typeId = typeId;
         this->form = TF_BASIC;
         this->size = 8;
+        this->symbol.str = typeToString(typeId);
     }
     bool validate(SymbolTable&, ErrorCollector&);
     string toString() const;
@@ -75,7 +76,7 @@ struct ArrayType : public Type {
     ArrayType(shared_ptr<Type> base, int elements) {
         this->elements = elements;
         this->form = TF_ARRAY;
-        this->size = base->size * elements + 4;
+        this->size = base->size * elements;
         this->location = base->location;
         this->base = base;
     }
