@@ -155,6 +155,11 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
         return false;
     }
 
+    // FIXME
+    if (8 > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = 8;
+    }
+
     return true;
 }
 

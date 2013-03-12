@@ -82,10 +82,18 @@ void Block::cgen(ostringstream& out)
 
 void Assignment::cgen(ostringstream& out)
 {
+    int tempLocation =
+        state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
+    string temp = "[rsp+" + to_string(tempLocation) + "]";
+    state.tempIndex++;
+    
     lhs->cgen(out, true);
-    out << "mov r8, rax\n";
+    out << "mov " << temp << ", rax\n";
     rhs->cgen(out);
-    out << "mov [r8], rax\n";
+    out << "mov rcx, " << temp << "\n";
+    out << "mov [rcx], rax\n";
+
+    state.tempIndex--;
 }
 
 void Return::cgen(ostringstream& out)

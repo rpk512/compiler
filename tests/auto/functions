@@ -1,0 +1,39 @@
+extern void print_line(string s);
+extern void exit(int n);
+
+void assert(bool condition) {
+    if (!condition) {
+        print_line("FAIL");
+        exit(1);
+    }
+}
+
+int a(int n) {
+    var x int;
+    var ret int;
+    x = 54321;
+    ret = b(n + 1);
+    assert(x == 54321);
+    return ret;   
+}
+
+int b(int n) {
+    var x int;
+    var ret int;
+    x = 12345;
+    ret = c(n + 2);
+    assert(x == 12345);
+    return ret;
+}
+
+int c(int n) {
+    return n + 4;
+}
+
+void main() {
+    if (a(0) == 7) {
+        print_line("PASS");
+    } else {
+        print_line("FAIL");
+    }
+}

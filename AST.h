@@ -75,6 +75,7 @@ struct Statement {
     virtual ~Statement() {}
 };
 
+// TODO: this should really reuse code from BinaryOpExpression
 struct Assignment : public Statement {
     unique_ptr<Expression> rhs;
     unique_ptr<Expression> lhs;
