@@ -3,7 +3,7 @@ extern void exit(int n);
 
 void assert(bool condition) {
     if (!condition) {
-        print_line("fail");
+        print_line("FAIL");
         exit(1);
     }
 }

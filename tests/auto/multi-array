@@ -1,0 +1,46 @@
+extern void print_line(string s);
+extern void exit(int n);
+
+void assert(bool condition) {
+    if (!condition) {
+        print_line("FAIL");
+        exit(1);
+    }
+}
+
+void main() {
+    var a int[10][10][10];
+    var i int;
+    var j int;
+    var k int;
+
+    i = 0;
+    while (i < 10) {
+        j = 0;
+        while (j < 10) {
+            k = 0;
+            while (k < 10) {
+                a[i][j][k] = i*10 + j*10 + k;
+                k = k + 1;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+
+    i = 0;
+    while (i < 10) {
+        j = 0;
+        while (j < 10) {
+            k = 0;
+            while (k < 10) {
+                assert(a[i][j][k] == i*10 + j*10 + k);
+                k = k + 1;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+
+    print_line("PASS");
+}
