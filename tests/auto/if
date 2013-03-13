@@ -4,10 +4,7 @@ void main() {
     var n int;
     n = 0;
 
-    var c0 int;
-    var c1 int;
-    var c2 int;
-    var c3 int;
+    var c0, c1, c2, c3 int;
 
     c0 = 0;
     c1 = 0;

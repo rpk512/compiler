@@ -1,9 +1,7 @@
 extern void print_line(string s);
 
 void main() {
-    var i int;
-    var j int;
-    var n int;
+    var i, j, n int;
 
     n = 0;
     i = 0;

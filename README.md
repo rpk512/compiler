@@ -30,7 +30,7 @@ Grammar
 
     <assigment> ::= <expr> "=" <expr> ";"
 
-    <declaration> ::= "var" <id> <type> ";"
+    <declaration> ::= "var" <id> { "," <id> } <type> ";"
 
     <return> ::= "return" <expr> ";"
 

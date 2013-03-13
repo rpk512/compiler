@@ -25,6 +25,7 @@ int yyerror(const char*);
     SourceText*    source_text;
     SourceLocation location;
     Type*          type;
+    vector<Symbol>* id_list;
     vector<unique_ptr<Declaration>>* argument_list;
     vector<unique_ptr<Statement>>*   statement_list;
     vector<unique_ptr<Expression>>*  expr_list;
@@ -42,6 +43,7 @@ int yyerror(const char*);
 %type <argument_list> actual_argument_list
 %type <statement_list> statement_list
 %type <expr_list> expr_list
+%type <id_list> id_list
 %type <type> type
 
 %token<location> WHILE
@@ -151,7 +153,9 @@ argument_list:
 actual_argument_list:
     type ID
     {
-        unique_ptr<Declaration> decl(new Declaration($1, *$2, nullptr));
+        vector<Symbol> syms;
+        syms.push_back(*$2);
+        unique_ptr<Declaration> decl(new Declaration($1, syms, nullptr));
         delete $2;
 
         $$ = new vector<unique_ptr<Declaration>>();
@@ -159,7 +163,9 @@ actual_argument_list:
     }
 |   argument_list ',' type ID
     {
-        unique_ptr<Declaration> decl(new Declaration($3, *$4, nullptr));
+        vector<Symbol> syms;
+        syms.push_back(*$4);
+        unique_ptr<Declaration> decl(new Declaration($3, syms, nullptr));
         delete $4;
 
         $1->push_back(move(decl));
@@ -190,10 +196,10 @@ statement_list:
 ;
 
 statement:
-    VAR ID type ';'
+    VAR id_list type ';'
     {
         $$ = new Declaration($3, *$2, nullptr);
-        $$->location = $2->location;
+        $$->location = $1;
         delete $2;
     }
 |   expr '=' expr ';'
@@ -223,6 +229,19 @@ statement:
     {
         $$ = new If($3, $5, $6);
         $$->location = $1;
+    }
+;
+
+id_list:
+    ID
+    {
+        $$ = new vector<Symbol>();
+        $$->push_back(*$1);
+    }
+|   id_list ',' ID
+    {
+        $1->push_back(*$3);
+        $$ = $1;
     }
 ;
 

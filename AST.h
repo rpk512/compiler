@@ -87,13 +87,13 @@ struct Assignment : public Statement {
 
 struct Declaration : public Statement {
     shared_ptr<Type> type;
-    Symbol id;
+    vector<Symbol> ids;
 
     Declaration(Type* type,
-                const Symbol& id,
+                const vector<Symbol>& ids,
                 Expression* initialExpr) {
         this->type.reset(type);
-        this->id = id;
+        this->ids = ids;
         location = type->location;
     }
     string toString() const;

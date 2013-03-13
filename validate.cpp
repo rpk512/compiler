@@ -57,7 +57,7 @@ bool FunctionNode::validateSignature(SymbolTable& symbols,
         if (argument->type->validate(symbols, errors)) {
             shared_ptr<Variable> var(
                 new Variable(argument->type,
-                             argument->id,
+                             argument->ids[0],
                              argumentStackOffset));
             locals.push_back(var);
             argumentStackOffset += argument->type->size;
@@ -101,8 +101,11 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
         int stackOffset = 0;
         for (unique_ptr<Statement>& statement : block->statements) {
             Declaration* decl = dynamic_cast<Declaration*>(statement.get());
-            if (decl != nullptr) {
-                shared_ptr<Variable> var = symbols.getVariable(decl->id.str);
+            if (decl == nullptr) {
+                continue;
+            }
+            for (Symbol& id : decl->ids) {
+                shared_ptr<Variable> var = symbols.getVariable(id.str);
                 stackOffset -= var->type->size;
                 var->stackOffset = stackOffset;
                 locals.push_back(var);
@@ -169,17 +172,16 @@ bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
 
     valid &= type->validate(symbols, errors);
 
-    shared_ptr<Variable> var(new Variable());
-    var->type = type;
+    for (Symbol& id : ids) {
+        shared_ptr<Variable> var(new Variable(type, id, 0));
 
-    if (symbols.getVariable(id.str) != nullptr) {
-        errors.error(location, "Redeclaration of variable: " + id.str);
-        return false;
+        if (symbols.getVariable(id.str) != nullptr) {
+            errors.error(location, "Redeclaration of variable: " + id.str);
+            valid = false;
+        }
+
+        symbols.setVariable(id.str, var);
     }
-
-    symbols.setVariable(id.str, var);
-
-    // TODO: inital expression validation once the syntax is implemented
 
     return valid;
 }

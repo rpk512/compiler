@@ -75,7 +75,7 @@ string FunctionNode::toString() const {
     s += returnType->toString() + " " + id.str + "(";
     for (size_t i = 0; i < arguments.size(); i++) {
         s += arguments[i]->type->toString() + " ";
-        s += arguments[i]->id.str;
+        s += arguments[i]->ids[0].str;
         if (i != arguments.size() - 1) {
             s += ", ";
         }
@@ -104,7 +104,15 @@ string Assignment::toString(int currentIndentLevel) const {
 }
 
 string Declaration::toString() const {
-    return type->toString() + " " + id.str;
+    string s = "var ";
+    for (int i = 0; i < ids.size(); i++) {
+        s += ids[i].str;
+        if (i < ids.size()-1) {
+            s += ", ";
+        }
+    }
+    s += " " + type->toString();
+    return s;
 }
 
 string Declaration::toString(int currentIndentLevel) const {

@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
     unique_ptr<ModuleNode> ast(parse(sourceCode, args.isFlagSet("-debug-parser")));
 
-    if (args.isFlagSet("printAST")) {
+    if (args.isFlagSet("-print-ast")) {
         cout << ast->toString() << endl;
     }
 
