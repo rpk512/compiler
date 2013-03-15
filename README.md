@@ -8,9 +8,12 @@ Required Tools
 
 Todo
 ====
-* Different int sizes
 * Modules
+* For loops
+* Different int sizes
+* Type casting
 * Improve code generation for if/while and local variable accesses
+* Dynamic allocation, Pointers to variable sized arrays
 * String manipulation
 * Setup tests for compilation errors
 * Improve syntax error messages
