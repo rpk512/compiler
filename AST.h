@@ -88,6 +88,7 @@ struct Assignment : public Statement {
 struct Declaration : public Statement {
     shared_ptr<Type> type;
     vector<Symbol> ids;
+    bool inOuterBlock = false;
 
     Declaration(Type* type,
                 const vector<Symbol>& ids,

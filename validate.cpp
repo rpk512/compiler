@@ -83,6 +83,13 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
         symbols.setVariable(var->symbol.str, var);
     }
 
+    for (unique_ptr<Statement>& statement : block->statements) {
+        Declaration* decl = dynamic_cast<Declaration*>(statement.get());
+        if (decl != nullptr) {
+            decl->inOuterBlock = true;
+        }
+    }
+
     currentFunction = this;
     valid &= block->validate(symbols, errors);
     currentFunction = nullptr;
@@ -112,8 +119,6 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
             }
         }
     }
-
-    // TODO: ensure declarations only occur in the outermost block
 
     symbols.clearVariables();
 
@@ -169,6 +174,11 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
 bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     bool valid = true;
+
+    if (!inOuterBlock) {
+        errors.error(location, "Declarations are only allowed in outer blocks.");
+        return false;
+    }
 
     valid &= type->validate(symbols, errors);
 

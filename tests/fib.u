@@ -1,11 +1,7 @@
-
 extern void print64(int64 n);
 
 void fib(int64 count) {
-    var a int;
-    var b int;
-    var n int;
-    var temp int;
+    var a, b, n, temp int;
 
     n = 0;
     a = 0;
