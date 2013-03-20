@@ -4,12 +4,25 @@
 #include <string>
 #include "SourceLocation.h"
 
-class SourceText {
-public:
+using namespace std;
+
+struct SourceText {
     SourceLocation location;
-    std::string str;
+    string str;
 };
 
-typedef SourceText Symbol;
+struct Symbol {
+    SourceLocation location;
+    string module;
+    string str;
+
+    string qualifiedString() const {
+        return module + ":" + str;
+    }
+
+    string asmString() const {
+        return module + "." + str;
+    }
+};
 
 #endif

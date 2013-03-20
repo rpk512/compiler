@@ -134,13 +134,17 @@ int main(int argc, char** argv)
 
     char** sourceLines = getLines(sourceCode);
 
-    unique_ptr<ModuleNode> ast(parse(sourceCode, args.isFlagSet("-debug-parser")));
+    unique_ptr<ModuleNode> ast(parse(sourceCode, "main",
+                               args.isFlagSet("-debug-parser")));
 
     if (args.isFlagSet("-print-ast")) {
         cout << ast->toString() << endl;
     }
 
-    string errors = ast->validate(sourceLines);
+    SymbolTable symbols;
+
+    ast->sourceLines = sourceLines;
+    string errors = ast->validate(symbols);
 
     if (errors.length() == 0) {
         ofstream out("output.s", ios::trunc);

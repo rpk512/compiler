@@ -27,14 +27,16 @@ class While;
 class ErrorCollector;
 class SymbolTable;
 
-ModuleNode* parse(const string& codeString, bool debug);
+ModuleNode* parse(const string&, const string&, bool);
 
 struct ModuleNode {
     vector<shared_ptr<FunctionNode>> functions;
+    vector<SourceText> imports;
     vector<string> strings;
+    char** sourceLines;
 
     string toString() const;
-    string validate(char**);
+    string validate(SymbolTable&);
     string cgen(bool);
 };
 

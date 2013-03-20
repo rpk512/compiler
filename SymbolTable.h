@@ -32,10 +32,10 @@ private:
 public:
     SymbolTable();
 
-    shared_ptr<FunctionNode> getFunction(string name) const;
+    shared_ptr<FunctionNode> getFunction(Symbol symbol) const;
     shared_ptr<Variable> getVariable(string name) const;
     BasicTypeId getBasicTypeId(string name) const;
-    void setFunction(string name, shared_ptr<FunctionNode> ftype);
+    void setFunction(Symbol symbol, shared_ptr<FunctionNode> ftype);
     void setVariable(string name, shared_ptr<Variable> variable);
     void clearVariables();
 };

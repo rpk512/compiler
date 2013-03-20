@@ -61,6 +61,14 @@ static string indent(int size) {
 
 string ModuleNode::toString() const {
     string s = "";
+    if (!imports.empty()) {
+        s += "imports {\n";
+        for (size_t i = 0; i < imports.size(); i++) {
+            s += indent(1) + '"' + imports[i].str + "\";\n";
+        }
+        s += "}\n\n";
+    }
+
     for (size_t i = 0; i < functions.size(); i++) {
         s += functions[i]->toString() + "\n\n";
     }
@@ -124,7 +132,7 @@ string Return::toString(int currentIndentLevel) const {
 }
 
 string FunctionCall::toString() const {
-    string s = id.str + "(";
+    string s = id.qualifiedString() + "(";
     for (size_t i = 0; i < arguments.size(); i++) {
         s += arguments[i]->toString();
         if (i != arguments.size()-1) {

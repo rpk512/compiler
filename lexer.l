@@ -15,6 +15,8 @@
 
 SourceLocation currentLocation;
 
+string currentModuleName;
+
 static void nextLine()
 {
     currentLocation.line++;
@@ -52,6 +54,7 @@ while    RET(WHILE)
 return   RET(RETURN)
 extern   RET(EXTERN)
 var      RET(VAR)
+imports  RET(IMPORTS)
 
 "==" RET(EQUAL)
 "!=" RET(NOT_EQUAL)
@@ -60,8 +63,20 @@ var      RET(VAR)
 "||" RET(LOGICAL_OR)
 "&&" RET(LOGICAL_AND)
 
+{ID}:{ID} {
+    string s(yytext);
+    size_t loc = s.find(':');
+
+    yylval.symbol = new Symbol{currentLocation,
+                               s.substr(0, loc),
+                               s.substr(loc)};
+    return QUALIFIED_ID;
+}
+
 {ID} {
-    yylval.symbol = new Symbol{currentLocation, string(yytext)};
+    yylval.symbol = new Symbol{currentLocation,
+                               currentModuleName,
+                               string(yytext)};
     return ID;
 }
 
@@ -84,7 +99,8 @@ extern int yyparse();
 
 ModuleNode* module;
 
-ModuleNode* parse(const string& codeString, bool debug)
+ModuleNode* parse(const string& codeString,
+                  const string& moduleName, bool debug)
 {
     yy_scan_string(codeString.c_str());
 
@@ -96,6 +112,9 @@ ModuleNode* parse(const string& codeString, bool debug)
 
     currentLocation.line = 0;
     currentLocation.column = 1;
+    currentModuleName = moduleName;
+
+    module = new ModuleNode();
 
     yyparse();
 

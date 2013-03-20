@@ -7,18 +7,17 @@
 // FIXME
 FunctionNode* currentFunction;
 
-string ModuleNode::validate(char** sourceLines)
+string ModuleNode::validate(SymbolTable& symbols)
 {
-    SymbolTable symbols;
     ErrorCollector errors(sourceLines);
 
     for (shared_ptr<FunctionNode>& function : functions) {
-        if (symbols.getFunction(function->id.str) != nullptr) {
+        if (symbols.getFunction(function->id) != nullptr) {
             errors.error(function->location, 
                          "Redefinition of function " + function->id.str);
         } else {
             function->validateSignature(symbols, errors);
-            symbols.setFunction(function->id.str, function);
+            symbols.setFunction(function->id, function);
         }
     }
     
@@ -216,7 +215,7 @@ bool Return::validate(SymbolTable& symbols, ErrorCollector& errors)
 
 bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
-    function = symbols.getFunction(id.str);
+    function = symbols.getFunction(id);
 
     if (function == nullptr) {
         errors.undefinedFunction(Statement::location, id.str);

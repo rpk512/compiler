@@ -26,9 +26,11 @@ int yyerror(const char*);
     SourceLocation location;
     Type*          type;
     vector<Symbol>* id_list;
-    vector<unique_ptr<Declaration>>* argument_list;
-    vector<unique_ptr<Statement>>*   statement_list;
-    vector<unique_ptr<Expression>>*  expr_list;
+    vector<SourceText>* text_list;
+    vector<unique_ptr<Declaration>>*  argument_list;
+    vector<unique_ptr<Statement>>*    statement_list;
+    vector<unique_ptr<Expression>>*   expr_list;
+    vector<shared_ptr<FunctionNode>>* function_list;
 }
 
 %type <module> module
@@ -44,7 +46,11 @@ int yyerror(const char*);
 %type <statement_list> statement_list
 %type <expr_list> expr_list
 %type <id_list> id_list
+%type <text_list> import_list
+%type <text_list> imports
+%type <function_list> function_list
 %type <type> type
+%type <symbol> qid
 
 %token<location> WHILE
 %token<location> IF
@@ -52,6 +58,8 @@ int yyerror(const char*);
 %token<location> ELSE
 %token<location> EXTERN
 %token<location> VAR
+%token<location> IMPORTS
+%token<location> RETURN
 
 %token<location> EQUAL
 %token<location> NOT_EQUAL
@@ -60,12 +68,11 @@ int yyerror(const char*);
 %token<location> LOGICAL_OR
 %token<location> LOGICAL_AND
 
-%token<location> RETURN
-
 %token<location> TRUE
 %token<location> FALSE
 
 %token <symbol> ID
+%token <symbol> QUALIFIED_ID
 %token <source_text> NUMBER
 %token <source_text> STRING_CONSTANT
 
@@ -82,15 +89,60 @@ int yyerror(const char*);
 %%
 
 module:
-    function
+    imports function_list
     {
-        module = new ModuleNode();
-        module->functions.push_back(unique_ptr<FunctionNode>($1));
+        if ($1 != nullptr) {
+            module->imports = *$1;
+        }
+        module->functions = *$2;
         $$ = module;
     }
-|   module function
+;
+
+imports:
+    /* empty */
     {
-        $1->functions.push_back(unique_ptr<FunctionNode>($2));
+        $$ = nullptr;
+    }
+|   IMPORTS '{' import_list '}'
+    {
+        $$ = $3;
+    }
+;
+
+import_list:
+    STRING_CONSTANT ';'
+    {
+        $$ = new vector<SourceText>();
+        $$->push_back(*$1);
+    }
+|   import_list STRING_CONSTANT ';'
+    {
+        $1->push_back(*$2);
+        $$ = $1;
+    }
+;
+
+function_list:
+    function
+    {
+        $$ = new vector<shared_ptr<FunctionNode>>();
+        $$->push_back(shared_ptr<FunctionNode>($1));
+    }
+|   function_list function
+    {
+        $1->push_back(shared_ptr<FunctionNode>($2));
+    }
+;
+
+qid:
+    ID
+    {
+        $$ = $1;
+    }
+|   QUALIFIED_ID
+    {
+        $$ = $1;
     }
 ;
 
@@ -263,7 +315,7 @@ else_chain:
 ;
 
 function_call:
-    ID '(' expr_list ')'
+    qid '(' expr_list ')'
     {
         $$ = new FunctionCall();
         $$->id = *$1;
@@ -272,7 +324,7 @@ function_call:
         delete $1;
         delete $3;
     }
-|   ID '(' ')'
+|   qid '(' ')'
     {
         $$ = new FunctionCall();
         $$->id = *$1;

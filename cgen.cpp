@@ -56,13 +56,17 @@ void FunctionNode::cgen(ostringstream& out)
         stackSpace += var->type->size;
     }
     
-    out << id.str << ":\n";
+    if (id.str == "main") {
+        out << "main:\n";
+    } else {
+        out << id.asmString() << ":\n";
+    }
     out << "push rbp\n";
     out << "mov rbp, rsp\n";
     out << "sub rsp, " << stackSpace << "\n";
 
     if (isTailRecursive && state.eliminateTailCalls) {
-        out << id.str << "_tail_call:\n";
+        out << id.asmString() << "_tail_call:\n";
     }
 
     block->cgen(out);
@@ -131,9 +135,9 @@ void FunctionCall::cgen(ostringstream& out)
             tempPosition += 8;
             argPosition += 8;
         }
-        out << "jmp " << id.str << "_tail_call" << "\n";
+        out << "jmp " << id.asmString() << "_tail_call" << "\n";
     } else {
-        out << "call " << id.str << "\n";
+        out << "call " << id.asmString() << "\n";
     }
 }
 
