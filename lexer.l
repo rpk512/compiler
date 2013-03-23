@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "AST.h"
+#include "Flags.h"
 #include "parser.tab.hh"
 
 
@@ -54,7 +55,8 @@ while    RET(WHILE)
 return   RET(RETURN)
 extern   RET(EXTERN)
 var      RET(VAR)
-imports  RET(IMPORTS)
+import   RET(IMPORT)
+asm      RET(ASM)
 
 "==" RET(EQUAL)
 "!=" RET(NOT_EQUAL)
@@ -69,7 +71,7 @@ imports  RET(IMPORTS)
 
     yylval.symbol = new Symbol{currentLocation,
                                s.substr(0, loc),
-                               s.substr(loc)};
+                               s.substr(loc+1)};
     return QUALIFIED_ID;
 }
 
@@ -100,11 +102,11 @@ extern int yyparse();
 ModuleNode* module;
 
 ModuleNode* parse(const string& codeString,
-                  const string& moduleName, bool debug)
+                  const string& moduleName)
 {
     yy_scan_string(codeString.c_str());
 
-    if (debug) {
+    if (Flags::debugParser) {
         yydebug = 1;
     } else {
         yydebug = 0;

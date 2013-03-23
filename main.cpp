@@ -8,7 +8,8 @@
 #include <sys/wait.h>
 
 #include "AST.h"
-#include "Arguments.h"
+#include "Flags.h"
+#include "cgen.h"
 
 using namespace std;
 
@@ -121,47 +122,74 @@ char** getLines(string sourceStr)
     return lines;
 }
 
-int main(int argc, char** argv)
+string getModuleName(string filePath)
 {
-    Arguments args(argc, argv);
+    size_t slash = filePath.find_last_of('/');
+    if (slash != string::npos) {
+        filePath = filePath.substr(slash+1);
+    }
+    return filePath.substr(0, filePath.length()-2);
+}
 
-    if (args.getInputFiles().empty()) {
-        cout << "No input files specified." << endl;
-        return 1;
+void compile(string filePath, ostream& assemblyOutput, SymbolTable& symbols)
+{
+    if (filePath.substr(filePath.length()-2) != ".u") {
+        cout << "Source file '" << filePath;
+        cout << "' does not have a .u extension" << endl;
+        exit(1);
     }
 
-    string sourceCode = readFile(args.getInputFiles()[0]);
+    string sourceCode = readFile(filePath);
 
-    char** sourceLines = getLines(sourceCode);
+    unique_ptr<ModuleNode> ast(parse(sourceCode, getModuleName(filePath)));
 
-    unique_ptr<ModuleNode> ast(parse(sourceCode, "main",
-                               args.isFlagSet("-debug-parser")));
-
-    if (args.isFlagSet("-print-ast")) {
+    if (Flags::printAST) {
         cout << ast->toString() << endl;
     }
 
-    SymbolTable symbols;
+    for (Import& import : ast->imports) {
+        assemblyOutput << ";; " << import.path.str << " ;;" << endl;
+        if (import.isAssembly) {
+            assemblyOutput << readFile(import.path.str+".s") << endl;
+        } else {
+            compile(import.path.str+".u", assemblyOutput, symbols);
+        }
+    }
+    
+    ast->sourceLines = getLines(sourceCode);
 
-    ast->sourceLines = sourceLines;
     string errors = ast->validate(symbols);
 
-    if (errors.length() == 0) {
-        ofstream out("output.s", ios::trunc);
-        if (out) {
-            out << ast->cgen(args.isFlagSet("-eliminate-tail-recursion"));
-            out.close();
-            assembleAndLink();
-        } else {
-            cout << "Failed to write output file." << endl;
-        }
-    } else {
+    if (errors.length() > 0) {
         cout << errors;
         cout << "Compilation failed." << endl;
+        exit(1);
     }
+    
+    delete[] ast->sourceLines[0];
+    delete[] ast->sourceLines;
 
-    delete[] sourceLines[0];
-    delete[] sourceLines;
+    ast->cgen(assemblyOutput);
+}
+
+int main(int argc, char** argv)
+{
+    parseFlags(argc, argv);
+
+    ofstream out("output.s", ios::trunc);
+    if (!out) {
+        cout << "Failed to open output.s" << endl;
+        exit(1);
+    }
+    startAsm(out, getModuleName(Flags::inputFileName));
+
+    SymbolTable symbols;
+
+    compile(Flags::inputFileName, out, symbols);
+
+    out.close();
+
+    assembleAndLink();
 
     return 0;
 }

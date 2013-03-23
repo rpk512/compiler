@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "AST.h"
+#include "Flags.h"
 
 using namespace std;
 
@@ -10,20 +11,25 @@ struct CGenState {
     FunctionNode* currentFunction;
     int labelCount = 0;
     int tempIndex = 0;
-    bool eliminateTailCalls;
 };
 
 CGenState state;
 
-string ModuleNode::cgen(bool eliminateTailCalls)
+void startAsm(ostream& out, const string& moduleName)
 {
-    ostringstream out;
-
-    state.eliminateTailCalls = eliminateTailCalls;
-
     out << "; vim: set syntax=nasm:\n";
-    out << "%include \"lib.s\"\n";
     out << "bits 64\n";
+    out << "section .text\n";
+    out << "global _start\n";
+    out << "_start:\n";
+    out << "    call " << moduleName << ".main\n";
+    out << "    mov rax, 60\n";
+    out << "    mov rdi, 0\n";
+    out << "    syscall\n\n\n";
+}
+
+void ModuleNode::cgen(ostream& out)
+{
     out << "section .text\n\n";
     
     for (shared_ptr<FunctionNode>& func : functions) {
@@ -37,11 +43,9 @@ string ModuleNode::cgen(bool eliminateTailCalls)
         out << "dd " << strings[i].size() << "\n";
         out << "db '" << strings[i] << "'\n";
     }
-
-    return out.str();
 }
 
-void FunctionNode::cgen(ostringstream& out)
+void FunctionNode::cgen(ostream& out)
 {
     if (block == nullptr) {
         return;
@@ -56,16 +60,12 @@ void FunctionNode::cgen(ostringstream& out)
         stackSpace += var->type->size;
     }
     
-    if (id.str == "main") {
-        out << "main:\n";
-    } else {
-        out << id.asmString() << ":\n";
-    }
+    out << id.asmString() << ":\n";
     out << "push rbp\n";
     out << "mov rbp, rsp\n";
     out << "sub rsp, " << stackSpace << "\n";
 
-    if (isTailRecursive && state.eliminateTailCalls) {
+    if (isTailRecursive && Flags::eliminateTailCalls) {
         out << id.asmString() << "_tail_call:\n";
     }
 
@@ -77,14 +77,14 @@ void FunctionNode::cgen(ostringstream& out)
     out << "ret\n\n";
 }
 
-void Block::cgen(ostringstream& out)
+void Block::cgen(ostream& out)
 {
     for (unique_ptr<Statement>& statement : statements) {
         statement->cgen(out);
     }
 }
 
-void Assignment::cgen(ostringstream& out)
+void Assignment::cgen(ostream& out)
 {
     int tempLocation =
         state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
@@ -100,21 +100,21 @@ void Assignment::cgen(ostringstream& out)
     state.tempIndex--;
 }
 
-void Return::cgen(ostringstream& out)
+void Return::cgen(ostream& out)
 {
     expr->cgen(out);
     out << "jmp .return\n";
 }
 
-void FunctionCall::cgen(ostringstream& out, bool genAddress)
+void FunctionCall::cgen(ostream& out, bool genAddress)
 {
     assert(!genAddress);
     cgen(out);
 }
 
-void FunctionCall::cgen(ostringstream& out)
+void FunctionCall::cgen(ostream& out)
 {
-    bool tailCall = state.eliminateTailCalls &&
+    bool tailCall = Flags::eliminateTailCalls &&
                     state.currentFunction == function.get() &&
                     state.currentFunction->isTailRecursive;
     int stackPosition = 0;
@@ -141,7 +141,7 @@ void FunctionCall::cgen(ostringstream& out)
     }
 }
 
-void If::cgen(ostringstream& out)
+void If::cgen(ostream& out)
 {
     int end = state.labelCount++;
 
@@ -166,7 +166,7 @@ void If::cgen(ostringstream& out)
     out << ".L" << end << ":\n";
 }
 
-void While::cgen(ostringstream& out)
+void While::cgen(ostream& out)
 {
     int label = state.labelCount++;
 
@@ -183,14 +183,14 @@ void While::cgen(ostringstream& out)
 // Expressions
 //
 
-void BinaryOpExpression::cgen(ostringstream& out, bool genAddress)
+void BinaryOpExpression::cgen(ostream& out, bool genAddress)
 {
     int startTempIndex = state.tempIndex;
     docgen(out, genAddress);
     state.tempIndex = startTempIndex;
 }
 
-void BinaryOpExpression::docgen(ostringstream& out, bool genAddress)
+void BinaryOpExpression::docgen(ostream& out, bool genAddress)
 {
     if (genAddress) {
         assert(op == OP_ARRAY_ACCESS);
@@ -283,7 +283,7 @@ void BinaryOpExpression::docgen(ostringstream& out, bool genAddress)
     }
 }
 
-void UnaryOpExpression::cgen(ostringstream& out, bool genAddress)
+void UnaryOpExpression::cgen(ostream& out, bool genAddress)
 {
     if (genAddress) {
         assert(op == OP_DEREF);
@@ -335,7 +335,7 @@ void UnaryOpExpression::cgen(ostringstream& out, bool genAddress)
     }
 }
 
-void VariableExpression::cgen(ostringstream& out, bool genAddress)
+void VariableExpression::cgen(ostream& out, bool genAddress)
 {
     if (genAddress) {
         out << "lea";
@@ -345,19 +345,19 @@ void VariableExpression::cgen(ostringstream& out, bool genAddress)
     out << " rax, [rbp+" << variable->stackOffset<< "]\n";
 }
 
-void BooleanLiteral::cgen(ostringstream& out, bool genAddress)
+void BooleanLiteral::cgen(ostream& out, bool genAddress)
 {
     assert(!genAddress);
     out << "mov rax, " << value << "\n";
 }
 
-void NumericLiteral::cgen(ostringstream& out, bool genAddress)
+void NumericLiteral::cgen(ostream& out, bool genAddress)
 {
     assert(!genAddress);
     out << "mov rax, " << value << "\n";
 }
 
-void StringLiteral::cgen(ostringstream& out, bool genAddress)
+void StringLiteral::cgen(ostream& out, bool genAddress)
 {
     assert(!genAddress);
     out << "mov rax, D$" << poolIndex << "\n";

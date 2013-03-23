@@ -45,8 +45,8 @@ struct Expression {
     int temporarySpace = 0;
 
     virtual ~Expression() {}
-    virtual void cgen(ostringstream&, bool genAddress=false) = 0;
-    virtual void docgen(ostringstream& out, bool genAddress=false) {
+    virtual void cgen(ostream&, bool genAddress=false) = 0;
+    virtual void docgen(ostream& out, bool genAddress=false) {
         cgen(out, genAddress);
     }
     virtual bool validate(SymbolTable&, ErrorCollector&) = 0;
@@ -68,8 +68,8 @@ struct BinaryOpExpression : public Expression {
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&, bool);
-    void docgen(ostringstream&, bool);
+    void cgen(ostream&, bool);
+    void docgen(ostream&, bool);
     bool isAddressable() const {return op == OP_ARRAY_ACCESS;}
 };
 
@@ -85,7 +85,7 @@ struct UnaryOpExpression : public Expression {
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&, bool);
+    void cgen(ostream&, bool);
     bool isAddressable() const {return op == OP_DEREF;}
 };
 
@@ -99,7 +99,7 @@ struct VariableExpression : public Expression {
     }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&, bool);
+    void cgen(ostream&, bool);
     bool isAddressable() const {return true;}
 };
 
@@ -116,7 +116,7 @@ struct BooleanLiteral : public Literal {
         type.reset(new BasicType(T_BOOL));
     }
     string toString() const;
-    void cgen(ostringstream&, bool);
+    void cgen(ostream&, bool);
 };
 
 struct NumericLiteral : public Literal {
@@ -127,7 +127,7 @@ struct NumericLiteral : public Literal {
         type.reset(new BasicType(T_INT64));
     }
     string toString() const;
-    void cgen(ostringstream&, bool);
+    void cgen(ostream&, bool);
 };
 
 struct StringLiteral : public Literal {
@@ -140,7 +140,7 @@ struct StringLiteral : public Literal {
         type.reset(new BasicType(T_STRING));
     }
     string toString() const;
-    void cgen(ostringstream&, bool);
+    void cgen(ostream&, bool);
 };
 
 #endif

@@ -27,17 +27,22 @@ class While;
 class ErrorCollector;
 class SymbolTable;
 
-ModuleNode* parse(const string&, const string&, bool);
+ModuleNode* parse(const string&, const string&);
+
+struct Import {
+    SourceText path;
+    bool isAssembly;
+};
 
 struct ModuleNode {
     vector<shared_ptr<FunctionNode>> functions;
-    vector<SourceText> imports;
+    vector<Import> imports;
     vector<string> strings;
     char** sourceLines;
 
     string toString() const;
     string validate(SymbolTable&);
-    string cgen(bool);
+    void cgen(ostream&);
 };
 
 struct FunctionNode {
@@ -55,7 +60,7 @@ struct FunctionNode {
     string toString() const;
     bool validateSignature(SymbolTable&, ErrorCollector&);
     bool validateBody(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostream&);
 };
 
 struct Block {
@@ -64,7 +69,7 @@ struct Block {
 
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostream&);
 };
 
 struct Statement {
@@ -72,7 +77,7 @@ struct Statement {
 
     string toString() const {return toString(0);}
     virtual string toString(int currentIndentLevel) const = 0;
-    virtual void cgen(ostringstream&) {};
+    virtual void cgen(ostream&) {};
     virtual bool validate(SymbolTable&, ErrorCollector&) = 0;
     virtual ~Statement() {}
 };
@@ -84,7 +89,7 @@ struct Assignment : public Statement {
     
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostream&);
 };
 
 struct Declaration : public Statement {
@@ -112,7 +117,7 @@ struct Return : public Statement {
     }
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostream&);
 };
 
 struct FunctionCall : public Statement, public Expression {
@@ -124,8 +129,8 @@ struct FunctionCall : public Statement, public Expression {
     string toString() const;
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
-    void cgen(ostringstream&, bool);
+    void cgen(ostream&);
+    void cgen(ostream&, bool);
     bool isAddressable() const {return false;}
 };
 
@@ -141,7 +146,7 @@ struct If : public Statement {
     }
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostream&);
 };
 
 struct While : public Statement {
@@ -154,7 +159,7 @@ struct While : public Statement {
     }
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
-    void cgen(ostringstream&);
+    void cgen(ostream&);
 };
 
 #endif

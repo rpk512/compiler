@@ -34,4 +34,4 @@ Parser ;
 
 Clean clean : output output.o output.s ;
 
-Main compiler : main.cpp Arguments.cpp cgen.cpp ErrorCollector.cpp SymbolTable.cpp tostring.cpp validate.cpp Type.cpp lexer.yy.cpp parser.yy.cpp ;
+Main compiler : main.cpp cgen.cpp ErrorCollector.cpp Flags.cpp SymbolTable.cpp tostring.cpp validate.cpp Type.cpp lexer.yy.cpp parser.yy.cpp ;

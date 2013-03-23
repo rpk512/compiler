@@ -61,13 +61,14 @@ static string indent(int size) {
 
 string ModuleNode::toString() const {
     string s = "";
-    if (!imports.empty()) {
-        s += "imports {\n";
-        for (size_t i = 0; i < imports.size(); i++) {
-            s += indent(1) + '"' + imports[i].str + "\";\n";
+    for (size_t i = 0; i < imports.size(); i++) {
+        s += "import ";
+        if (imports[i].isAssembly) {
+            s += "asm ";
         }
-        s += "}\n\n";
+        s += "\"" + imports[i].path.str + "\";\n";
     }
+    s += '\n';
 
     for (size_t i = 0; i < functions.size(); i++) {
         s += functions[i]->toString() + "\n\n";

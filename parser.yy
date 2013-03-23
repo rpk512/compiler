@@ -26,7 +26,7 @@ int yyerror(const char*);
     SourceLocation location;
     Type*          type;
     vector<Symbol>* id_list;
-    vector<SourceText>* text_list;
+    vector<Import>* import_list;
     vector<unique_ptr<Declaration>>*  argument_list;
     vector<unique_ptr<Statement>>*    statement_list;
     vector<unique_ptr<Expression>>*   expr_list;
@@ -46,8 +46,7 @@ int yyerror(const char*);
 %type <statement_list> statement_list
 %type <expr_list> expr_list
 %type <id_list> id_list
-%type <text_list> import_list
-%type <text_list> imports
+%type <import_list> imports
 %type <function_list> function_list
 %type <type> type
 %type <symbol> qid
@@ -58,7 +57,8 @@ int yyerror(const char*);
 %token<location> ELSE
 %token<location> EXTERN
 %token<location> VAR
-%token<location> IMPORTS
+%token<location> IMPORT
+%token<location> ASM
 %token<location> RETURN
 
 %token<location> EQUAL
@@ -102,23 +102,18 @@ module:
 imports:
     /* empty */
     {
-        $$ = nullptr;
+        $$ = new vector<Import>();
     }
-|   IMPORTS '{' import_list '}'
+|   imports IMPORT STRING_CONSTANT ';'
     {
-        $$ = $3;
+        $1->push_back(Import{*$3, false});
+        delete $3;
+        $$ = $1;
     }
-;
-
-import_list:
-    STRING_CONSTANT ';'
+|   imports IMPORT ASM STRING_CONSTANT ';'
     {
-        $$ = new vector<SourceText>();
-        $$->push_back(*$1);
-    }
-|   import_list STRING_CONSTANT ';'
-    {
-        $1->push_back(*$2);
+        $1->push_back(Import{*$4, true});
+        delete $4;
         $$ = $1;
     }
 ;
