@@ -1,12 +1,4 @@
-extern void print_line(string s);
-extern void exit(int n);
-
-void assert(bool condition) {
-    if (!condition) {
-        print_line("FAIL");
-        exit(1);
-    }
-}
+import "test";
 
 void main() {
     var a int[10];
@@ -22,9 +14,9 @@ void main() {
 
     i = 0;
     while (i < 10) {
-        assert(a[i] == i + 1);
+        test:assert(a[i] == i + 1);
         i = i + 1;
     }
 
-    print_line("PASS");
+    test:pass();
 }

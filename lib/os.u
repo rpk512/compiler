@@ -1,0 +1,3 @@
+import asm "os";
+
+extern void exit(int n);

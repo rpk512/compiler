@@ -1,0 +1,5 @@
+import asm "io";
+
+extern void println(string s);
+
+extern void print64(int n);

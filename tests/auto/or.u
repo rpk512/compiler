@@ -1,24 +1,17 @@
-extern void print_line(string s);
-extern void exit(int n);
-
-bool fail() {
-    print_line("FAIL");
-    exit(1);
-    return True;
-}
+import "test";
 
 void main() {
-    if (False || True || fail()) {
+    if (False || True || test:fail()) {
     
     }
 
-    if (True || fail()) {
+    if (True || test:fail()) {
         
     }
 
     if (False || False || False) {
-        fail();
+        test:fail();
     }
 
-    print_line("PASS");
+    test:pass();
 }

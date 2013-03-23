@@ -1,4 +1,4 @@
-extern void print_line(string s);
+import "test";
 
 int sum(int n) {
     if (n > 0) {
@@ -9,8 +9,8 @@ int sum(int n) {
 
 void main() {
     if (sum(100) == 5050) {
-        print_line("PASS");
+        test:pass();
     } else {
-        print_line("FAIL");
+        test:fail();
     }
 }

@@ -1,12 +1,4 @@
-extern void print_line(string s);
-extern void exit(int n);
-
-void assert(bool condition) {
-    if (!condition) {
-        print_line("FAIL");
-        exit(1);
-    }
-}
+import "test";
 
 void test1(int* ptr) {
     test2(&ptr);
@@ -21,29 +13,29 @@ void main() {
 
     i = 0;
     test1(&i);
-    assert(i == 12345);
+    test:assert(i == 12345);
 
     var ptr int*;
     var ptrptr int**;
 
     ptr = &i;
-    assert(*ptr == 12345);
+    test:assert(*ptr == 12345);
 
     *ptr = 0;
-    assert(i == 0);
+    test:assert(i == 0);
 
     ptrptr = &ptr;
     **ptrptr = 54321;
-    assert(i == 54321);
+    test:assert(i == 54321);
 
     var j int;
     j = 0;
     j = *ptr;
-    assert(j == 54321);
+    test:assert(j == 54321);
 
     j = 1024;
     *ptrptr = &j;
-    assert(**ptrptr == 1024);
+    test:assert(**ptrptr == 1024);
 
-    print_line("PASS");
+    test:pass();
 }

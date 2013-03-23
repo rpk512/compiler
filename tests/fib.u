@@ -1,4 +1,4 @@
-extern void print64(int64 n);
+import "io";
 
 void fib(int64 count) {
     var a, b, n, temp int;
@@ -8,7 +8,7 @@ void fib(int64 count) {
     b = 1;
 
     while (n < count) {
-        print64(a);
+        io:print64(a);
         temp = b;
         b = a + b;
         a = temp;

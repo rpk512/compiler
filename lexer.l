@@ -89,8 +89,8 @@ asm      RET(ASM)
 #.*\n { nextLine(); }
 
 . {
-    cout << "Invalid character '" << yytext[0] << "' found at ";
-    cout << currentLocation.line+1 << ":" << currentLocation.column << endl;
+    cerr << "Invalid character '" << yytext[0] << "' found at ";
+    cerr << currentLocation.line+1 << ":" << currentLocation.column << endl;
     exit(1);
 }
 
@@ -117,6 +117,7 @@ ModuleNode* parse(const string& codeString,
     currentModuleName = moduleName;
 
     module = new ModuleNode();
+    module->name = moduleName;
 
     yyparse();
 

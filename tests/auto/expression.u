@@ -1,5 +1,4 @@
-extern void print_line(string s);
-extern void print64(int n);
+import "test";
 
 void main() {
     var x int;
@@ -7,8 +6,8 @@ void main() {
     x = ---5 * (4 + 3 + 2 * (5 + 1)) / 10 * 12 - 3 * (((2)-1)-1);
     
     if (x == -108) {
-        print_line("PASS");
+        test:pass();
     } else {
-        print_line("FAIL");
+        test:fail();
     }
 }

@@ -1,4 +1,4 @@
-extern void print_line(string s);
+import "test";
 
 void main() {
     var n int;
@@ -25,8 +25,8 @@ void main() {
     }
 
     if (c0 == 1 && c1 == 1 && c2 == 1 && c3 == 1) {
-        print_line("PASS");
+        test:pass();
     } else {
-        print_line("FAIL");
+        test:fail();
     }
 }

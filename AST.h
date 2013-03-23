@@ -39,6 +39,7 @@ struct ModuleNode {
     vector<Import> imports;
     vector<string> strings;
     char** sourceLines;
+    string name;
 
     string toString() const;
     string validate(SymbolTable&);

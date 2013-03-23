@@ -2,9 +2,11 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <set>
 
 #include <stdio.h>
 #include <unistd.h>
+#include <limits.h>
 #include <sys/wait.h>
 
 #include "AST.h"
@@ -13,12 +15,13 @@
 
 using namespace std;
 
-string readFile(const string& fileName)
+string readFile(const string& workingDir, const string& fileName)
 {
-    ifstream input(fileName.c_str());
+    ifstream input((workingDir + fileName).c_str());
 
     if (!input.is_open()) {
-        cout << "Failed to open file: " << fileName << endl;
+        cerr << "Failed to find file: " << fileName;
+        cerr << " in " << workingDir << endl;
         exit(1);
     }
 
@@ -45,7 +48,6 @@ string readFile(const string& fileName)
 
 void assembleAndLink()
 {
-    bool assembleFailed = false;
     pid_t pid;
     
     pid = fork();
@@ -57,18 +59,12 @@ void assembleAndLink()
         int status;
         waitpid(pid, &status, 0);
         if (WEXITSTATUS(status) != 0) {
-            cout << "Assemble failed." << endl;
-            assembleFailed = true;
+            cerr << "Assemble failed." << endl;
             exit(1);
         }
     } else {
         perror("Failed to fork nasm: ");
-        assembleFailed = true;
         exit(1);
-    }
-
-    if (assembleFailed) {
-        return;
     }
     
     pid = fork();
@@ -80,7 +76,7 @@ void assembleAndLink()
         int status;
         waitpid(pid, &status, 0);
         if (WEXITSTATUS(status) != 0) {
-            cout << "Link failed." << endl;
+            cerr << "Link failed." << endl;
             exit(1);
         }
     } else {
@@ -93,7 +89,7 @@ char** getLines(string sourceStr)
 {
     char* source = new char[sourceStr.length()+1];
     char** lines;
-    int lineCount;
+    int lineCount = 0;
 
     for (int i = 0; i < sourceStr.length(); i++) {
         source[i] = sourceStr[i];
@@ -128,31 +124,82 @@ string getModuleName(string filePath)
     if (slash != string::npos) {
         filePath = filePath.substr(slash+1);
     }
-    return filePath.substr(0, filePath.length()-2);
+    return filePath.substr(0, filePath.length());
 }
 
-void compile(string filePath, ostream& assemblyOutput, SymbolTable& symbols)
+string getModuleDir(const string& workingDir, const string& filePath)
 {
-    if (filePath.substr(filePath.length()-2) != ".u") {
-        cout << "Source file '" << filePath;
-        cout << "' does not have a .u extension" << endl;
-        exit(1);
+    string basePath;
+
+    if (access((workingDir + filePath).c_str(), F_OK) != -1) {
+        basePath = workingDir + filePath;
+    } else {
+        if (access((Flags::libDir + filePath).c_str(), F_OK) == -1) {
+            cerr << "Failed to locate module: " << filePath << endl;
+            cerr << "Working directory: " << workingDir << endl;
+            cerr << "Library directory: " << Flags::libDir << endl;
+            exit(1);
+        } else {
+            basePath = Flags::libDir + filePath;
+        }
     }
 
-    string sourceCode = readFile(filePath);
+    size_t slash = basePath.find_last_of('/');
 
-    unique_ptr<ModuleNode> ast(parse(sourceCode, getModuleName(filePath)));
+    if (slash != string::npos) {
+        basePath = basePath.substr(0, slash+1);
+    } else {
+        basePath = "./";
+    }
+
+    return basePath;
+}
+
+string getWorkingDir()
+{
+    char dir[PATH_MAX];
+    if (getcwd(dir, sizeof(dir)) == NULL) {
+        perror("Failed to get working directory: ");
+        exit(1);
+    }
+    return string(dir) + '/';
+}
+
+void compile(string workingDir, string moduleName,
+             ostream& assemblyOutput, SymbolTable& symbols)
+{
+    static set<string> importedModules;
+
+    string sourceCode = readFile(workingDir, moduleName+".u");
+
+    unique_ptr<ModuleNode> ast(parse(sourceCode, moduleName));
 
     if (Flags::printAST) {
-        cout << ast->toString() << endl;
+        cerr << ast->toString() << endl;
     }
 
     for (Import& import : ast->imports) {
-        assemblyOutput << ";; " << import.path.str << " ;;" << endl;
         if (import.isAssembly) {
-            assemblyOutput << readFile(import.path.str+".s") << endl;
+            string importPath = workingDir+import.path.str+".s";
+            if (importedModules.find(importPath) != importedModules.end()) {
+                continue;
+            }
+            importedModules.insert(importPath);
+            assemblyOutput << ";; " << import.path.str << " ;;" << endl;
+
+            assemblyOutput << readFile(workingDir, import.path.str+".s") << endl;
         } else {
-            compile(import.path.str+".u", assemblyOutput, symbols);
+            string newModuleName = getModuleName(import.path.str);
+            string newWorkingDir = getModuleDir(workingDir, import.path.str+".u");
+
+            string importPath = newWorkingDir + newModuleName;
+            if (importedModules.find(importPath) != importedModules.end()) {
+                continue;
+            }
+            importedModules.insert(importPath);
+            assemblyOutput << ";; " << import.path.str << " ;;" << endl;
+
+            compile(newWorkingDir, newModuleName, assemblyOutput, symbols);
         }
     }
     
@@ -161,8 +208,8 @@ void compile(string filePath, ostream& assemblyOutput, SymbolTable& symbols)
     string errors = ast->validate(symbols);
 
     if (errors.length() > 0) {
-        cout << errors;
-        cout << "Compilation failed." << endl;
+        cerr << errors;
+        cerr << "Compilation failed." << endl;
         exit(1);
     }
     
@@ -176,16 +223,21 @@ int main(int argc, char** argv)
 {
     parseFlags(argc, argv);
 
+    string moduleName = getModuleName(Flags::inputFileName);
+    moduleName = moduleName.substr(0, moduleName.length()-2);
+
     ofstream out("output.s", ios::trunc);
     if (!out) {
-        cout << "Failed to open output.s" << endl;
+        cerr << "Failed to open output.s" << endl;
         exit(1);
     }
-    startAsm(out, getModuleName(Flags::inputFileName));
+
+    startAsm(out, moduleName);
 
     SymbolTable symbols;
 
-    compile(Flags::inputFileName, out, symbols);
+    string dir = getModuleDir(getWorkingDir(), Flags::inputFileName);
+    compile(dir, moduleName, out, symbols);
 
     out.close();
 

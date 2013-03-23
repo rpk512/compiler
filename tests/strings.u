@@ -1,11 +1,11 @@
-extern void print_line(string str);
+import "io";
 
 void main() {
     var hello string;
 
     hello = "Hello, World!";
 
-    print_line(hello);
+    io:println(hello);
 
-    print_line("Hello, World!");
+    io:println("Hello, World!");
 }

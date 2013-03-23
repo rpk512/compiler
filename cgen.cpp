@@ -8,7 +8,8 @@
 using namespace std;
 
 struct CGenState {
-    FunctionNode* currentFunction;
+    FunctionNode* function;
+    ModuleNode* module;
     int labelCount = 0;
     int tempIndex = 0;
 };
@@ -30,6 +31,8 @@ void startAsm(ostream& out, const string& moduleName)
 
 void ModuleNode::cgen(ostream& out)
 {
+    state.module = this;
+
     out << "section .text\n\n";
     
     for (shared_ptr<FunctionNode>& func : functions) {
@@ -39,7 +42,7 @@ void ModuleNode::cgen(ostream& out)
     out << "section .data\n";
 
     for (size_t i = 0; i < strings.size(); i++) {
-        out << "D$" << i << ":\n";
+        out << name << ".D$" << i << ":\n";
         out << "dd " << strings[i].size() << "\n";
         out << "db '" << strings[i] << "'\n";
     }
@@ -51,7 +54,7 @@ void FunctionNode::cgen(ostream& out)
         return;
     }
 
-    state.currentFunction = this;
+    state.function = this;
 
     state.labelCount = 0;
 
@@ -87,7 +90,7 @@ void Block::cgen(ostream& out)
 void Assignment::cgen(ostream& out)
 {
     int tempLocation =
-        state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
+        state.function->stackSpaceForArgs + state.tempIndex * 8;
     string temp = "[rsp+" + to_string(tempLocation) + "]";
     state.tempIndex++;
     
@@ -115,8 +118,8 @@ void FunctionCall::cgen(ostream& out, bool genAddress)
 void FunctionCall::cgen(ostream& out)
 {
     bool tailCall = Flags::eliminateTailCalls &&
-                    state.currentFunction == function.get() &&
-                    state.currentFunction->isTailRecursive;
+                    state.function == function.get() &&
+                    state.function->isTailRecursive;
     int stackPosition = 0;
 
     for (unique_ptr<Expression>& argument : arguments) {
@@ -198,7 +201,7 @@ void BinaryOpExpression::docgen(ostream& out, bool genAddress)
 
     int shortCircuitLabel;
     int tempLocation =
-        state.currentFunction->stackSpaceForArgs + state.tempIndex * 8;
+        state.function->stackSpaceForArgs + state.tempIndex * 8;
     string temp = "[rsp+" + to_string(tempLocation) + "]";
     state.tempIndex++;
 
@@ -278,7 +281,7 @@ void BinaryOpExpression::docgen(ostream& out, bool genAddress)
             }
             break;
         default:
-            cout << "BUG: unknown op: " << op << endl;
+            cerr << "BUG: unknown op: " << op << endl;
             exit(1);
     }
 }
@@ -330,7 +333,7 @@ void UnaryOpExpression::cgen(ostream& out, bool genAddress)
             }
             break;
         default:
-            cout << "BUG: unknown op: " << op << endl;
+            cerr << "BUG: unknown op: " << op << endl;
             exit(1);
     }
 }
@@ -360,5 +363,5 @@ void NumericLiteral::cgen(ostream& out, bool genAddress)
 void StringLiteral::cgen(ostream& out, bool genAddress)
 {
     assert(!genAddress);
-    out << "mov rax, D$" << poolIndex << "\n";
+    out << "mov rax, " << state.module->name << ".D$" << poolIndex << "\n";
 }

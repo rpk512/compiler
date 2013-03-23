@@ -21,7 +21,7 @@ struct Symbol {
     }
 
     string asmString() const {
-        return module + "." + str;
+        return "$" + module + "." + str;
     }
 };
 
