@@ -54,6 +54,7 @@ struct FunctionNode {
     shared_ptr<Type> returnType;
     Symbol id;
     int stackSpaceForArgs = 0;
+    int stackSpaceForLocals = 0;
     int temporarySpace = 0;
     bool isTailRecursive = true;
     set<FunctionCall*> tailCalls;
@@ -99,8 +100,7 @@ struct Declaration : public Statement {
     bool inOuterBlock = false;
 
     Declaration(Type* type,
-                const vector<Symbol>& ids,
-                Expression* initialExpr) {
+                const vector<Symbol>& ids) {
         this->type.reset(type);
         this->ids = ids;
         location = type->location;
@@ -126,7 +126,6 @@ struct FunctionCall : public Statement, public Expression {
     shared_ptr<FunctionNode> function;
     vector<unique_ptr<Expression>> arguments;
 
-// TODO: add constructor
     string toString() const;
     string toString(int currentIndentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
@@ -159,6 +158,45 @@ struct While : public Statement {
         this->block.reset(block);
     }
     string toString(int currentIndentLevel) const;
+    bool validate(SymbolTable&, ErrorCollector&);
+    void cgen(ostream&);
+};
+
+struct RangeFor : public Statement {
+    unique_ptr<Declaration> decl;
+    shared_ptr<Variable> var;
+    unique_ptr<Expression> start;
+    unique_ptr<Expression> end;
+    unique_ptr<Block> block;
+
+    RangeFor(Type* type, const Symbol& id, Expression* start,
+             Expression* end, Block* block) {
+        vector<Symbol> ids;
+        ids.push_back(id);
+        this->decl.reset(new Declaration(type, move(ids)));
+        this->start.reset(start);
+        this->end.reset(end);
+        this->block.reset(block);
+    }
+    string toString(int currentIndentLevel) const;
+    bool validate(SymbolTable&, ErrorCollector&);
+    void cgen(ostream&);
+};
+
+struct ArrayFor : public Statement {
+    unique_ptr<Declaration> decl;
+    shared_ptr<Variable> var;
+    unique_ptr<Expression> arrayExpr;
+    unique_ptr<Block> block;
+
+    ArrayFor(Type* type, const Symbol& id, Expression* arrayExpr, Block* block) {
+        vector<Symbol> ids;
+        ids.push_back(id);
+        this->decl.reset(new Declaration(type, move(ids)));
+        this->arrayExpr.reset(arrayExpr);
+        this->block.reset(block);
+    }
+    string toString(int currentIdentLevel) const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostream&);
 };

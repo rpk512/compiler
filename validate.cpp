@@ -54,6 +54,13 @@ bool FunctionNode::validateSignature(SymbolTable& symbols,
     int argumentStackOffset = 8 * 2; // base pointer & return address
     for (unique_ptr<Declaration>& argument : arguments) {
         if (argument->type->validate(symbols, errors)) {
+            if (argument->type->form == TF_ARRAY) {
+                errors.error(argument->location,
+                    "Array arguments are not allowed.");
+                valid = false;
+                continue;
+            }
+
             shared_ptr<Variable> var(
                 new Variable(argument->type,
                              argument->ids[0],
@@ -101,24 +108,6 @@ bool FunctionNode::validateBody(SymbolTable& symbols,
         valid = false;
     }
 
-    // TODO: fix this up
-    // setup local variables
-    if (valid) {
-        int stackOffset = 0;
-        for (unique_ptr<Statement>& statement : block->statements) {
-            Declaration* decl = dynamic_cast<Declaration*>(statement.get());
-            if (decl == nullptr) {
-                continue;
-            }
-            for (Symbol& id : decl->ids) {
-                shared_ptr<Variable> var = symbols.getVariable(id.str);
-                stackOffset -= var->type->size;
-                var->stackOffset = stackOffset;
-                locals.push_back(var);
-            }
-        }
-    }
-
     symbols.clearVariables();
 
     if (tailCalls.empty()) {
@@ -143,7 +132,7 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
         return false;
     }
 
-    if (dynamic_cast<ArrayType*>(lhs->type.get()) != nullptr) {
+    if (lhs->type->form == TF_ARRAY ) {
         errors.error(lhs->location, "Cannot assign to an array");
         return false;
     }
@@ -162,9 +151,15 @@ bool Assignment::validate(SymbolTable& symbols, ErrorCollector& errors)
         return false;
     }
 
-    // FIXME
-    if (8 > currentFunction->temporarySpace) {
-        currentFunction->temporarySpace = 8;
+    int tempSpace = 8;
+    if (lhs->temporarySpace > rhs->temporarySpace) {
+        tempSpace += lhs->temporarySpace;
+    } else {
+        tempSpace += rhs->temporarySpace;
+    }
+
+    if (tempSpace > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = tempSpace;
     }
 
     return true;
@@ -182,12 +177,17 @@ bool Declaration::validate(SymbolTable& symbols, ErrorCollector& errors)
     valid &= type->validate(symbols, errors);
 
     for (Symbol& id : ids) {
-        shared_ptr<Variable> var(new Variable(type, id, 0));
+        currentFunction->stackSpaceForLocals += type->size;
+        int stackOffset = -currentFunction->stackSpaceForLocals;
+
+        shared_ptr<Variable> var(new Variable(type, id, stackOffset));
 
         if (symbols.getVariable(id.str) != nullptr) {
             errors.error(location, "Redeclaration of variable: " + id.str);
             valid = false;
         }
+
+        currentFunction->locals.push_back(var);
 
         symbols.setVariable(id.str, var);
     }
@@ -239,8 +239,6 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
         if (!arguments[i]->validate(symbols, errors)) {
             continue;
         }
-
-        assert(arguments[i]->type->form != TF_ARRAY);
 
         if (arguments[i]->temporarySpace > temporarySpace) {
             temporarySpace = arguments[i]->temporarySpace;
@@ -314,6 +312,58 @@ bool While::validate(SymbolTable& symbols, ErrorCollector& errors)
     valid &= block->validate(symbols, errors);
 
     return valid;
+}
+
+bool RangeFor::validate(SymbolTable& symbols, ErrorCollector& errors)
+{
+    // FIXME
+    decl->inOuterBlock = true;
+
+    if (!decl->validate(symbols, errors)) {
+        return false;
+    }
+
+    var = symbols.getVariable(decl->ids[0].str);
+
+    if (!var->type->isBasicType(T_INT64)) {
+        errors.error(location, "For loop variable must have type 'int'");
+        return false;
+    }
+
+    bool valid = true;
+    valid &= start->validate(symbols, errors);
+    valid &= end->validate(symbols, errors);
+
+    if (start->temporarySpace > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = start->temporarySpace;
+    }
+
+    if (end->temporarySpace > currentFunction->temporarySpace) {
+        currentFunction->temporarySpace = end->temporarySpace;
+    }
+
+    if (!valid) {
+        return false;
+    }
+
+    if (!start->type->isBasicType(T_INT64) ||
+            !end->type->isBasicType(T_INT64)) {
+        errors.unexpectedType(location, new BasicType(T_INT64), var->type.get());
+        return false;
+    }
+
+    if (!block->validate(symbols, errors)) {
+        return false;
+    }
+
+    symbols.removeVariable(decl->ids[0].str);
+
+    return true;
+}
+
+bool ArrayFor::validate(SymbolTable& symbols, ErrorCollector& errors)
+{
+    return true;
 }
 
 //

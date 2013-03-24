@@ -3,16 +3,16 @@
 
 SymbolTable::SymbolTable()
 {
-    basicTypeIds["int8"]  = T_INT8;
+    /*basicTypeIds["int8"]  = T_INT8;
     basicTypeIds["int16"] = T_INT16;
-    basicTypeIds["int32"] = T_INT32;
+    basicTypeIds["int32"] = T_INT32;*/
     basicTypeIds["int64"] = T_INT64;
     basicTypeIds["int"] = T_INT64;
     
-    basicTypeIds["u8"]  = T_U8;
+    /*basicTypeIds["u8"]  = T_U8;
     basicTypeIds["u16"] = T_U16;
     basicTypeIds["u32"] = T_U32;
-    basicTypeIds["u64"] = T_U64;
+    basicTypeIds["u64"] = T_U64;*/
 
     basicTypeIds["bool"] = T_BOOL;
     basicTypeIds["string"] = T_STRING;
@@ -57,8 +57,12 @@ void SymbolTable::setVariable(string name, shared_ptr<Variable> variable)
     variables[name] = variable;
 }
 
+void SymbolTable::removeVariable(string name)
+{
+    variables.erase(name);
+}
+
 void SymbolTable::clearVariables()
 {
     variables.clear();
 }
-

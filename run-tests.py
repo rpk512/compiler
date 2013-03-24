@@ -2,6 +2,7 @@
 from subprocess import Popen, PIPE, STDOUT
 import os
 import glob
+import sys
 
 def red(text):
     return '\x1B[31m' + text + '\x1B[0m'
@@ -9,12 +10,17 @@ def red(text):
 def green(text):
     return '\x1B[32m' + text + '\x1B[0m'
 
-test_files = glob.glob('./tests/auto/*.u')
-padding = 0
+test_files = []
+if len(sys.argv) > 1:
+    sys.argv.pop(0)
+    for arg in sys.argv:
+        test_files.append('./tests/auto/' + arg)
+else:
+    test_files = glob.glob('./tests/auto/*.u')
 
+padding = 0
 for test_file in test_files:
-    padding = max(padding, len(os.path.basename(test_file)))
-padding += 3
+    padding = max(padding, len(os.path.basename(test_file))+1)
 
 compile_cmd = [
     './compiler',
@@ -24,6 +30,10 @@ compile_cmd = [
 ]
 
 for test_file in test_files:
+    if not os.path.exists(test_file):
+        print(red('File does not exist: ' + test_file))
+        continue
+
     compile_cmd[-1] = test_file
     compile_output = Popen(compile_cmd, stdout=PIPE, stderr=STDOUT).stdout.read()
     output = ''
@@ -37,7 +47,7 @@ for test_file in test_files:
         ret = p.poll()
 
         if ret < 0:
-            output = red('Received signal: ' + str(-ret))
+            output = red('Execution Failed')
         elif test_output == 'PASS':
             output = green('PASS')
         elif test_output == 'FAIL':

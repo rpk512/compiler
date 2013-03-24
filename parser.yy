@@ -60,6 +60,9 @@ int yyerror(const char*);
 %token<location> IMPORT
 %token<location> ASM
 %token<location> RETURN
+%token<location> FOR
+%token<location> IN
+%token<location> DOTDOT
 
 %token<location> EQUAL
 %token<location> NOT_EQUAL
@@ -202,7 +205,7 @@ actual_argument_list:
     {
         vector<Symbol> syms;
         syms.push_back(*$2);
-        unique_ptr<Declaration> decl(new Declaration($1, syms, nullptr));
+        unique_ptr<Declaration> decl(new Declaration($1, syms));
         delete $2;
 
         $$ = new vector<unique_ptr<Declaration>>();
@@ -212,7 +215,7 @@ actual_argument_list:
     {
         vector<Symbol> syms;
         syms.push_back(*$4);
-        unique_ptr<Declaration> decl(new Declaration($3, syms, nullptr));
+        unique_ptr<Declaration> decl(new Declaration($3, syms));
         delete $4;
 
         $1->push_back(move(decl));
@@ -245,7 +248,7 @@ statement_list:
 statement:
     VAR id_list type ';'
     {
-        $$ = new Declaration($3, *$2, nullptr);
+        $$ = new Declaration($3, *$2);
         $$->location = $1;
         delete $2;
     }
@@ -277,6 +280,18 @@ statement:
         $$ = new If($3, $5, $6);
         $$->location = $1;
     }
+|   FOR '(' type ID IN expr DOTDOT expr ')' block
+    {
+        $$ = new RangeFor($3, *$4, $6, $8, $10);
+        $$->location = $1;
+        delete $4;
+    }
+|   FOR '(' type ID IN expr ')' block
+    {
+        $$ = new ArrayFor($3, *$4, $6, $8);
+        $$->location = $1;
+        delete $4;
+    }
 ;
 
 id_list:
@@ -284,6 +299,7 @@ id_list:
     {
         $$ = new vector<Symbol>();
         $$->push_back(*$1);
+        delete $1;
     }
 |   id_list ',' ID
     {

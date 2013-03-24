@@ -37,6 +37,7 @@ public:
     BasicTypeId getBasicTypeId(string name) const;
     void setFunction(Symbol symbol, shared_ptr<FunctionNode> ftype);
     void setVariable(string name, shared_ptr<Variable> variable);
+    void removeVariable(string name);
     void clearVariables();
 };
 

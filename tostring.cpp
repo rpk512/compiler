@@ -132,6 +132,18 @@ string Return::toString(int currentIndentLevel) const {
     return "return " + expr->toString() + ";";
 }
 
+string RangeFor::toString(int currentIndentLevel) const {
+    return "for (" + decl->type->toString() + " " + decl->ids[0].str + " in " +
+            start->toString() + ".." + end->toString() + ") " +
+            block->toString(currentIndentLevel);
+}
+
+string ArrayFor::toString(int currentIndentLevel) const {
+    return "for (" + decl->type->toString() + " " + decl->ids[0].str + " in " +
+            arrayExpr->toString() + ") " +
+            block->toString(currentIndentLevel);
+}
+
 string FunctionCall::toString() const {
     string s = id.qualifiedString() + "(";
     for (size_t i = 0; i < arguments.size(); i++) {

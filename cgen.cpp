@@ -58,10 +58,7 @@ void FunctionNode::cgen(ostream& out)
 
     state.labelCount = 0;
 
-    int stackSpace = stackSpaceForArgs + temporarySpace;
-    for (shared_ptr<Variable>& var : locals) {
-        stackSpace += var->type->size;
-    }
+    int stackSpace = stackSpaceForArgs + stackSpaceForLocals + temporarySpace;
     
     out << id.asmString() << ":\n";
     out << "push rbp\n";
@@ -182,6 +179,31 @@ void While::cgen(ostream& out)
     out << ".LOOP_END_" << label << ":\n";
 }
 
+void RangeFor::cgen(ostream& out)
+{
+    int label = state.labelCount++;
+
+    start->cgen(out);
+    out << "mov [rbp+" << var->stackOffset << "], rax\n";
+
+    out << ".LOOP_START_" << label << ":\n";
+    
+    end->cgen(out);
+    out << "cmp [rbp+" << var->stackOffset << "], rax\n";
+    out << "jg .LOOP_END_" << label << "\n";
+
+    block->cgen(out);
+    
+    out << "inc QWORD [rbp+" << var->stackOffset << "]\n";
+    out << "jmp .LOOP_START_" << label << "\n";
+    out << ".LOOP_END_" << label << ":\n";
+}
+
+void ArrayFor::cgen(ostream& out)
+{
+    assert(false);
+}
+
 //
 // Expressions
 //
@@ -247,7 +269,7 @@ void BinaryOpExpression::docgen(ostream& out, bool genAddress)
             out << cmov << " rax, rcx\n";
             break;
         case OP_ADD:
-            out << "add rax," << temp << "\n";
+            out << "add rax, " << temp << "\n";
             break;
         case OP_SUB:
             out << "mov rcx, rax\n";
