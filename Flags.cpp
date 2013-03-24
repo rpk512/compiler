@@ -44,6 +44,9 @@ void parseFlags(int argc, char** argv)
             } else if (i < argc-1 && flag == "--lib-dir") {
                 Flags::libDir = getAbsolutePath(argv[i+1]);
                 i++;
+            } else {
+                cerr << "Invalid flag: " << flag << endl;
+                exit(1);
             }
         } else if (!inputFileFound) {
             Flags::inputFileName = string(argv[i]);
