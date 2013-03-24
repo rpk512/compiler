@@ -18,5 +18,13 @@ void main() {
         i = i + 1;
     }
 
+    var array_ptr int[10]*;
+    array_ptr = &a;
+
+    array_ptr[5] = 12345;
+    test:assert(a[5] == 12345);
+    (*array_ptr)[5] = 54321;
+    test:assert(a[5] == 54321);
+
     test:pass();
 }
