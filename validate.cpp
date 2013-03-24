@@ -240,7 +240,7 @@ bool FunctionCall::validate(SymbolTable& symbols, ErrorCollector& errors)
             continue;
         }
 
-        assert(dynamic_cast<ArrayType*>(arguments[i]->type.get()) == nullptr);
+        assert(arguments[i]->type->form != TF_ARRAY);
 
         if (arguments[i]->temporarySpace > temporarySpace) {
             temporarySpace = arguments[i]->temporarySpace;
