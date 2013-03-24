@@ -11,10 +11,11 @@ class ErrorCollector {
 private:
     ostringstream errors;
     char** sourceLines;
+    string fileName;
     void putLoc(SourceLocation);
     void putLine(SourceLocation);
 public:
-    ErrorCollector(char** sourceLines);
+    ErrorCollector(char** sourceLines, const string& fileName);
     void error(SourceLocation, string);
     void undefinedVariable(SourceLocation, string);
     void undefinedFunction(SourceLocation, string);

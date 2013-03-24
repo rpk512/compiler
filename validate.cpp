@@ -9,7 +9,7 @@ FunctionNode* currentFunction;
 
 string ModuleNode::validate(SymbolTable& symbols)
 {
-    ErrorCollector errors(sourceLines);
+    ErrorCollector errors(sourceLines, name+".u");
 
     for (shared_ptr<FunctionNode>& function : functions) {
         if (symbols.getFunction(function->id) != nullptr) {
@@ -323,6 +323,7 @@ bool While::validate(SymbolTable& symbols, ErrorCollector& errors)
 bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
 {
     bool valid = true;
+
     valid &= lhs->validate(symbols, errors);
     valid &= rhs->validate(symbols, errors);
 
@@ -337,6 +338,16 @@ bool BinaryOpExpression::validate(SymbolTable& symbols, ErrorCollector& errors)
     }
 
     if (op == OP_ARRAY_ACCESS) {
+        // When LHS is a pointer to an array, automatically dereference it
+        // This lets us write array_ptr[i] instead of (*array_ptr)[i]
+        if (lhs->type->form == TF_POINTER &&
+            ((PointerType*)lhs->type.get())->base->form == TF_ARRAY) {
+
+            shared_ptr<Type> baseType = ((PointerType*)lhs->type.get())->base;
+            lhs = unique_ptr<Expression>(new UnaryOpExpression(OP_DEREF, lhs));
+            lhs->type = baseType;
+        }
+
         if (lhs->type->form != TF_ARRAY) {
             errors.error(lhs->location, "Expected array type, found '"+
                             lhs->type->toString() +"'");

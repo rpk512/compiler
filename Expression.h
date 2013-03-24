@@ -83,6 +83,12 @@ struct UnaryOpExpression : public Expression {
         this->location = expr->location;
         type.reset(new BasicType(T_UNKNOWN));
     }
+    UnaryOpExpression(UnaryOperator op, unique_ptr<Expression>& expr) {
+        this->op = op;
+        this->expr = move(expr);
+        this->location = this->expr->location;
+        type.reset(new BasicType(T_UNKNOWN));
+    }
     string toString() const;
     bool validate(SymbolTable&, ErrorCollector&);
     void cgen(ostream&, bool);

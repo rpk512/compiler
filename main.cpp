@@ -175,7 +175,7 @@ void compile(string workingDir, string moduleName,
     unique_ptr<ModuleNode> ast(parse(sourceCode, moduleName));
 
     if (Flags::printAST) {
-        cerr << ast->toString() << endl;
+        cout << ast->toString() << endl;
     }
 
     for (Import& import : ast->imports) {

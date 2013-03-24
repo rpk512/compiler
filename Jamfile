@@ -16,7 +16,7 @@ actions Bison
 
 rule Lexer
 {
-    Depends lexer.yy.cpp : lexer.l parser.tab.hh ;
+    Depends lexer.yy.cpp : lexer.l parser.yy.cpp ;
     Flex lexer.yy.cpp : lexer.l ;
     Clean clean : lexer.yy.cpp ;
 }
@@ -24,7 +24,6 @@ rule Lexer
 rule Parser
 {
     Depends parser.yy.cpp : parser.yy ;
-    Depends parser.tab.hh : parser.yy.cpp parser.yy ;
     Bison parser.yy.cpp : parser.yy ;
     Clean clean : parser.yy.cpp parser.tab.hh bison_report ;
 }

@@ -281,8 +281,7 @@ void BinaryOpExpression::docgen(ostream& out, bool genAddress)
             }
             break;
         default:
-            cerr << "BUG: unknown op: " << op << endl;
-            exit(1);
+            assert(false);
     }
 }
 
@@ -315,6 +314,7 @@ void UnaryOpExpression::cgen(ostream& out, bool genAddress)
             out << "lea rax, [rbp+" << varExpr->variable->stackOffset << "]\n";
             return;
         }
+
         assert(false);
     }
 
@@ -333,8 +333,7 @@ void UnaryOpExpression::cgen(ostream& out, bool genAddress)
             }
             break;
         default:
-            cerr << "BUG: unknown op: " << op << endl;
-            exit(1);
+            assert(false);
     }
 }
 

@@ -1,9 +1,10 @@
 #include "ErrorCollector.h"
 using namespace std;
 
-ErrorCollector::ErrorCollector(char** sourceLines)
+ErrorCollector::ErrorCollector(char** sourceLines, const string& fileName)
 {
     this->sourceLines = sourceLines;
+    this->fileName = fileName;
 }
 
 string ErrorCollector::getErrorString() const
@@ -13,6 +14,7 @@ string ErrorCollector::getErrorString() const
 
 void ErrorCollector::putLoc(SourceLocation location)
 {
+    errors << fileName << " ";
     errors << location.line+1 << ":" << location.column << " ";
 }
 

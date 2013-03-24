@@ -21,7 +21,7 @@ string currentModuleName;
 static void nextLine()
 {
     currentLocation.line++;
-    currentLocation.column = 0;
+    currentLocation.column = -yyleng;
 }
 
 %}

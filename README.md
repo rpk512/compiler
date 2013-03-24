@@ -11,7 +11,6 @@ Required Tools
 
 Todo
 ====
-* Modules
 * For loops
 * Different int sizes
 * Type casting
